@@ -33,82 +33,54 @@ import tempfile
 import torch
 import torchvision
 import torchvision.transforms
-import h5py
-import inspect
 
 
 class DatasetSaver:
-    def __init__(self, dataset, path2save, splits=[0.7, 0.15, None], seed=42):
-
-        #
-        self.splits = self.get_splits(splits)
+    def __init__(self, dataset, path2save, splits=None, seed=42):
+        # how will the dataset be split -> training, validation, testing
+        self.splits = splits
+        self.set_splits()
         self.dataset = dataset
         self.path2save = path2save
 
         np.random.seed(seed)
-
-        #
         data = self.get_data()
         self.save_data(data)
 
-    def get_splits(self, splits):
-
-        if len(splits) != 3:
+    def set_splits(self):
+        if self.splits is None:
+            self.splits = [0.7, 0.15, None]
+        if len(self.splits) != 3:
             print("ERROR: len(splits) != 3")
             sys.exit()
-        if splits[-1] is None:
-            splits[-1] = 1.0 - np.sum(splits[:-1])
-        splits = np.array(splits)
+        if self.splits[-1] is None:
+            self.splits[-1] = 1.0 - np.sum(self.splits[:-1])
 
-        return splits
+        self.splits = np.array(self.splits)
 
     def get_data(self):
-
         if hasattr(torchvision.datasets, self.dataset):
             data = self.get_torch_dataset()
-        elif self.dataset == "AugMod":
-            data = self.get_augmod_dataset()
-        elif self.dataset == "RML2016.04C":
-            data = self.get_rml_dataset()
         else:
             print(f"ERROR: did not find the dataset {self.dataset}")
             raise AttributeError
 
         for k, v in data.items():
-            uniqs = torch.unique(v["y"]).size()
+            nr_unique_elements = torch.unique(v["y"]).size()
             print(
-                f"INFO: {k} has x shape = {v['x'].shape} and y shape = {v['y'].shape}, nb uniques = {uniqs}"
+                f"INFO: {k} has x shape = {v['x'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
             )
 
         return data
 
     def get_torch_dataset(self):
+        """ Returns data with train, valid and test keys"""
 
-        data = {}
-
-        # Train and Valid
-        trainvalidset = self.get_torch_dataset_type(True)
-
-        splits = self.splits[:2] / self.splits[:2].sum()
-        nb_samples = trainvalidset["y"].shape[0]
-        w = np.arange(nb_samples)
-        np.random.shuffle(w)
-        trainvalidset["x"] = trainvalidset["x"][w]
-        trainvalidset["y"] = trainvalidset["y"][w]
-
-        nb_split = int(splits[0] * nb_samples)
-        data["train"] = {
-            "x": trainvalidset["x"][:nb_split],
-            "y": trainvalidset["y"][:nb_split],
-        }
-        data["valid"] = {
-            "x": trainvalidset["x"][nb_split:],
-            "y": trainvalidset["y"][nb_split:],
-        }
+        data = self.get_train_and_validation()
 
         # Test
-        testset = self.get_torch_dataset_type(False)
-        data["test"] = testset
+        test_set = self.get_torch_dataset_with_type(dataset_type="test")
+        data["test"] = test_set
 
         # New splits
         print("INFO: previous splits:", self.splits)
@@ -120,17 +92,39 @@ class DatasetSaver:
 
         return data
 
-    def get_torch_dataset_type(self, dataset_type):
-        with tempfile.TemporaryDirectory() as tmpdirname:
+    def get_train_and_validation(self):
+        data = {}
+        train_valid_set = self.get_torch_dataset_with_type(dataset_type="trainval")
 
+        # shuffle elements
+        nr_samples = train_valid_set["y"].shape[0]
+        random_indexes = np.arange(nr_samples)
+        np.random.shuffle(random_indexes)
+        train_valid_set["x"] = train_valid_set["x"][random_indexes]
+        train_valid_set["y"] = train_valid_set["y"][random_indexes]
+
+        splits = self.splits[:2] / self.splits[:2].sum()
+        nr_split_train = int(splits[0] * nr_samples)
+        data["train"] = {
+            "x": train_valid_set["x"][:nr_split_train],
+            "y": train_valid_set["y"][:nr_split_train],
+        }
+        data["valid"] = {
+            "x": train_valid_set["x"][nr_split_train:],
+            "y": train_valid_set["y"][nr_split_train:],
+        }
+
+        return data
+
+    def get_torch_dataset_with_type(self, dataset_type=None):
+        with tempfile.TemporaryDirectory() as tmp_dir_name:
             if self.dataset in ["OxfordIIITPet"]:
-                dataset_type = "test" if dataset_type else "trainval"
                 kwargs = {"target_types": "segmentation"}
             else:
                 kwargs = {}
             data = (
                 getattr(torchvision.datasets, self.dataset)(
-                    tmpdirname,
+                    tmp_dir_name,
                     dataset_type,
                     download=True,
                     transform=torchvision.transforms.Compose(
@@ -142,41 +136,96 @@ class DatasetSaver:
                 ),
             )
 
-            if hasattr(data[0], "data") and hasattr(data[0], "targets"):
-                x = data[0].data
-                y = data[0].targets
-            else:
-                x, y = self.get_data_from_loaders(data[0])
-
-            if "numpy" in str(type(x)):
-                x = torch.from_numpy(x)
-            if "numpy" in str(type(y)):
-                y = torch.from_numpy(y)
-            if type(y) == type([]):
-                y = torch.from_numpy(np.array(y))
-
-            # Channels manipulations
+            x, y = self.get_x_y_from_data(data)
             x, y = self.channel_manipulations(x, y)
 
         return {"x": x, "y": y}
 
-    def channel_manipulations(self, x, y):
+    def get_x_y_from_data(self, data):
+        # doesn't need processing
+        if hasattr(data[0], "data") and hasattr(data[0], "targets"):
+            x, y = data[0].data, data[0].targets
+        else:
+            x, y = self.get_data_from_loaders(data[0])
 
-        if self.dataset in ["MNIST", "FashionMNIST"]:
-            x = torch.unsqueeze(x, 1)
-        elif self.dataset in ["CIFAR10"]:
-            x = torch.cat([x[..., i][:, None, ...] for i in range(x.shape[-1])], axis=1)
+        # make x, y to be tensors
+        if "numpy" in str(type(x)):
+            x = torch.from_numpy(x)
+        if "numpy" in str(type(y)):
+            y = torch.from_numpy(y)
+        elif type(y) is list:
+            y = torch.from_numpy(np.array(y))
 
         return x, y
 
-    def get_augmod_dataset(self):
-        pass
+    @staticmethod
+    def get_data_from_loaders(data):
+        x = []
+        y = []
+        dataset_size = 10
 
-    def get_rml_dataset(self):
-        pass
+        for i, tmp_data in enumerate(data):
+            if i >= dataset_size:
+                break
+
+            # add a new dimension to tmp_x
+            tmp_x = tmp_data[0][None, ...]
+            tmp_y = tmp_data[1]
+
+            # we have an image
+            if "PIL.PngImagePlugin.PngImageFile" in str(type(tmp_y)):
+                tmp_y = torch.from_numpy(np.asarray(tmp_y).copy())[None, ...]
+
+            x += [tmp_x]
+            y += [tmp_y]
+
+        x = DatasetSaver.resize_x(x)
+        y = DatasetSaver.resize_y(y)
+
+        return x, y
+
+    @staticmethod
+    def resize_x(x):
+        if x[0].ndim == 4:
+            x = [
+                torchvision.transforms.Resize(
+                    size=(64, 64),
+                    interpolation=torchvision.transforms.InterpolationMode.NEAREST,
+                )(el) for el in x
+            ]
+        # convert from list of tensors to tensors
+        return torch.cat(x)
+
+    @staticmethod
+    def resize_y(y):
+        if y[0].ndim == 3:
+            y = [
+                torchvision.transforms.Resize(
+                    size=(64, 64),
+                    interpolation=torchvision.transforms.InterpolationMode.NEAREST,
+                )(el) for el in y
+            ]
+        y = torch.cat(y)
+
+        # encode the values in y to be from 0 to nr(unique_values)
+        for i, val in enumerate(torch.sort(torch.unique(y))[0]):
+            y_eq_to_val = y == val
+            y[y_eq_to_val] = i
+
+        return y
+
+    def channel_manipulations(self, x, y):
+        # add a dimension m (n, m, n)
+        if self.dataset in ["MNIST", "FashionMNIST"]:
+            x = torch.unsqueeze(x, 1)
+        # transposing a tensor x with shape (batch_size, height, width, channels)
+        # to (batch_size, channels, height, width)
+        elif self.dataset in ["CIFAR10"]:
+            x = torch.cat([x[..., i][:, None, ...] for i in range(x.shape[-1])], dim=1)
+
+        return x, y
 
     def save_data(self, data):
-
         for k, v in data.items():
             os.makedirs(os.path.join(self.path2save, self.dataset), exist_ok=True)
             for n_data, a_data in v.items():
@@ -185,51 +234,8 @@ class DatasetSaver:
                 )
                 torch.save(a_data, tmp_path2save)
 
-    def get_data_from_loaders(self, data):
-
-        x = []
-        y = []
-        for i, tmp_data in enumerate(data):
-            if i >= 10000:
-                break
-
-            tmp_x = tmp_data[0][None, ...]
-            tmp_y = tmp_data[1]
-            if "PIL.PngImagePlugin.PngImageFile" in str(type(tmp_y)):
-                tmp_y = torch.from_numpy(np.asarray(tmp_y).copy())[None, ...]
-
-            x += [tmp_x]
-            y += [tmp_y]
-
-        if x[0].ndim == 4:
-            x = [
-                torchvision.transforms.Resize(
-                    size=(64, 64),
-                    interpolation=torchvision.transforms.InterpolationMode.NEAREST,
-                )(el)
-                for el in x
-            ]
-        if y[0].ndim == 3:
-            y = [
-                torchvision.transforms.Resize(
-                    size=(64, 64),
-                    interpolation=torchvision.transforms.InterpolationMode.NEAREST,
-                )(el)
-                for el in y
-            ]
-
-        x = torch.cat(x, axis=0)
-        y = torch.cat(y, axis=0)
-
-        for i, val in enumerate(torch.sort(torch.unique(y))[0]):
-            w = y == val
-            y[w] = i
-
-        return x, y
-
 
 if __name__ == "__main__":
-
-    dataset = "OxfordIIITPet"
-    path2save = "./tmp_data/blalbla"
-    DatasetSaver(dataset=dataset, path2save=path2save)
+    dataset_main = "OxfordIIITPet"
+    path2save_main = "./tmp_data/blalbla"
+    DatasetSaver(dataset=dataset_main, path2save=path2save_main)
