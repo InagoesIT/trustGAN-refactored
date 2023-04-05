@@ -27,141 +27,62 @@
 # 2022 october 21
 
 import os
-import pkgutil
-
 import matplotlib.pyplot as plt
-import copy
 import glob
 import numpy as np
 import torch
 import torchsummaryX
 
-from py.training.losses import get_softmax_cross_entropy_loss, get_combined_gan_loss
-from py.training.networks.gan import Gan
 from py.dataset.modifier import Modifier
-from py.dataset.data_loader import DataLoader
+from py.training.data_loaders import DataLoaders
+from py.training.networks_data import NetworksData
+from py.training.training_params import TrainingParams
+from py.training.network_nan_recovery import NetworkNaNRecovery
 
-package = __import__("py.training.networks")
 
 class Training:
+    # TODO: maybe needed to make this a builder?
     def __init__(
-        self,
-        path_to_save,
-        path2dataset,
-        nr_classes,
-        device_name=None,
-        batch_size=64,
-        path_to_load_net=None,
-        path_to_load_gan=None,
-        nr_epochs=2,
-        nr_step_net_gan=1,
-        nr_step_gan=1,
-        nr_step_net_alone=1,
-        verbose=True,
-        proportion_net_alone=0.0,
-        path2net=None,
-        network_name="Net",
-        nr_channels=None,
+            self,
+            training_params: TrainingParams,
+            path_to_save,
+            path2dataset,
+            path_to_load_net=None,
+            path_to_load_gan=None,
+            path2net=None,
+            device_name=None,
+            verbose=True,
     ):
-
+        self.epoch = 0
+        self.perfs = None
+        self.best_loss = None
         self.verbose = verbose
-
-        #
         self.path_to_save = path_to_save
         self.path_to_load_net = path_to_load_net
         self.path_to_load_gan = path_to_load_gan
+        self.training_params = training_params
+        self.modifier = Modifier(nr_channels=self.training_params.nr_channels)
 
-        #
-        if self.path_to_save is not None:
-            if not os.path.isdir(self.path_to_save):
-                os.mkdir(self.path_to_save)
-            for folder in ["plots", "nets", "perfs-plots", "gifs"]:
-                if not os.path.isdir(os.path.join(self.path_to_save, folder)):
-                    os.mkdir(os.path.join(self.path_to_save, folder))
-                else:
-                    print("\nWARNING\n Files exists")
+        self.process_path2save()
+        self.data_loaders = DataLoaders(path2dataset, training_params, verbose)
 
-        #
-        self.nr_classes = nr_classes
-        self.trainloader = DataLoader.get_dataloader(
-            path2dataset=path2dataset,
-            nr_classes=nr_classes,
-            dataset_type="train",
-            batch_size=batch_size,
-            verbose=verbose,
-        )
-        self.validloader = DataLoader.get_dataloader(
-            path2dataset=path2dataset,
-            nr_classes=nr_classes,
-            dataset_type="valid",
-            batch_size=batch_size,
-            verbose=verbose,
-        )
-        self.testloader = DataLoader.get_dataloader(
-            path2dataset=path2dataset,
-            nr_classes=nr_classes,
-            dataset_type="test",
-            batch_size=batch_size,
-            verbose=verbose,
-        )
-        self.modifier = Modifier(nr_channels=nr_channels)
-
-        #
-        nr_dims = self.modifier(next(iter(self.validloader)))[0].ndim - 2
+        nr_dims = self.modifier(next(iter(self.data_loaders.valid)))[0].ndim - 2
         print(f"INFO: Found {nr_dims} dimensions")
-        nr_channels = self.modifier(next(iter(self.validloader)))[0].shape[1]
-        print(f"INFO: Found {nr_channels} channels")
+        self.training_params.nr_channels = self.modifier(next(iter(self.data_loaders.valid)))[0].shape[1]
+        print(f"INFO: Found {self.training_params.nr_channels} channels")
 
-        #
         self.device = self.get_device(device_name=device_name)
         self.sequence_dims_onnx = np.arange(2, 2 + nr_dims)
 
-        if path2net is not None:
-            self.net = path2net
-        else:
-            # find all the modules in the package
-            for importer, modname, is_pkg in pkgutil.walk_packages(package.__path__):
-                # import the module
-                module = importer.find_module(modname).load_module(modname)
+        self.networks_data = NetworksData(path2net, nr_dims, self.training_params)
 
-                # check if the module has the class
-                if hasattr(module, network_name):
-                    # get the class from the module
-                    network = getattr(module, network_name)
-                    self.net = network(
-                        nr_classes=nr_classes,
-                        nr_channels=nr_channels,
-                        is_batch_norm=False,
-                        is_weight_norm=True,
-                        dim=f"{nr_dims}d",
-                    )
-                    break
-        self.net_loss = get_softmax_cross_entropy_loss
-        self.net_optim = torch.optim.AdamW(self.net.parameters(), weight_decay=0.05)
+        self.load_models_if_present()
 
-        #
-        self.gan = Gan(
-            nr_channels=nr_channels,
-            is_batch_norm=True,
-            is_weight_norm=False,
-            dim=f"{nr_dims}d",
-        )
-        self.gan_loss = get_combined_gan_loss
-        self.gan_optim = torch.optim.AdamW(self.gan.parameters(), weight_decay=0.05)
-        self.gan_scheduler = torch.optim.lr_scheduler.CyclicLR(
-            self.gan_optim,
-            base_lr=1.0e-3,
-            max_lr=5.0e-3,
-            step_size_up=50,
-            cycle_momentum=False,
-        )
-
-        #
+    def load_models_if_present(self):
         for model, path_to_load in [
-            (self.net, self.path_to_load_net),
-            (self.gan, self.path_to_load_gan),
+            (self.networks_data.net, self.path_to_load_net),
+            (self.networks_data.gan, self.path_to_load_gan),
         ]:
-
             model = model.to(self.device)
 
             if path_to_load is not None:
@@ -171,27 +92,23 @@ class Training:
             if self.verbose:
                 model.eval()
                 x_rand = torch.rand(
-                    self.modifier(next(iter(self.validloader)))[0].shape,
+                    self.modifier(next(iter(self.data_loaders.valid)))[0].shape,
                     device=self.device,
                 )
                 # torchsummaryX.summary(model, x_rand)
                 model.train()
 
-        self.gan2 = copy.deepcopy(self.gan)
-
-        #
-        self.nr_epochs = nr_epochs
-        self.nr_step_net_gan = nr_step_net_gan
-        self.nr_step_gan = nr_step_gan
-        self.nr_step_net_alone = nr_step_net_alone
-        self.proportion_net_alone = proportion_net_alone
-        self.recovered_from_nan_net = 0
-        self.recovered_from_nan_gan = 0
-        self.grad_clipping_coef = 1.0
+    def process_path2save(self):
+        if self.path_to_save is not None:
+            if not os.path.isdir(self.path_to_save):
+                os.mkdir(self.path_to_save)
+            for folder in ["plots", "nets", "perfs-plots", "gifs"]:
+                if not os.path.isdir(os.path.join(self.path_to_save, folder)):
+                    os.mkdir(os.path.join(self.path_to_save, folder))
+                else:
+                    print("\nWARNING\n Files exists")
 
     def get_device(self, device_name=None):
-        """ """
-
         if device_name is None:
             device_name = "cuda:0"
 
@@ -206,25 +123,22 @@ class Training:
 
     @torch.inference_mode()
     def get_predictions(self, loader, score_type="MCP"):
-
         if type(loader) == str:
             loader = getattr(self, loader)
 
-        self.net.eval()
+        self.networks_data.net.eval()
 
         softmax = torch.nn.Softmax(dim=1)
-
         truth = []
-        preds = []
+        predictions = []
         score = []
 
         for data in loader:
-
             inputs, labels = data[0].to(self.device), data[1].to(self.device)
             inputs, labels = self.modifier((inputs, labels))
 
-            outputs = softmax(self.net(inputs))
-            _, tmp_preds = torch.max(outputs, 1)
+            outputs = softmax(self.networks_data.net(inputs))
+            _, tmp_predictions = torch.max(outputs, 1)
             outputs, _ = torch.sort(outputs, dim=1)
             if score_type == "MCP":
                 tmp_score = outputs[:, -1]
@@ -233,162 +147,83 @@ class Training:
             _, tmp_truth = torch.max(labels, 1)
 
             truth += [tmp_truth.detach().cpu().numpy()]
-            preds += [tmp_preds.detach().cpu().numpy()]
+            predictions += [tmp_predictions.detach().cpu().numpy()]
             score += [tmp_score.detach().cpu().numpy()]
 
         truth = np.hstack(truth)
-        preds = np.hstack(preds)
+        predictions = np.hstack(predictions)
         score = np.hstack(score)
 
-        self.net.train()
+        self.networks_data.net.train()
 
-        return truth, preds, score
+        return truth, predictions, score
 
-    @torch.inference_mode()
-    def recover_from_nan_net(self):
-        """
-        Recover from Nan in net
-        """
-
-        self.net.eval()
-
-        data = next(iter(self.trainloader))
-
-        inputs = data[0][:1].to(self.device)
-        inputs, _ = self.modifier((inputs, None))
-        outputs = self.net(inputs)
-
-        if torch.any(torch.isnan(outputs)):
-            print("\nWARNING: The Net gives NaN")
-            nets = glob.glob("{}/nets/net-step-*.pth".format(self.path_to_save))
-            nets = sorted(sorted(nets), key=len)
-            idx = -1
-            while torch.any(torch.isnan(outputs)):
-                self.net.load_state_dict(torch.load(nets[idx]))
-                outputs = self.net(inputs)
-                idx -= 1
-            print(f"WARNING: Recover a proper state there: {nets[idx+1]}")
-
-            self.recovered_from_nan_net += 1
-            print(f"WARNING: Recovered from NaN {self.recovered_from_nan_net} times\n")
-            self.net_optim = torch.optim.AdamW(
-                self.net.parameters(),
-                weight_decay=0.05,
-                lr=1.0e-3 / 2**self.recovered_from_nan_net,
-            )
-
-        self.net.train()
-
-    @torch.inference_mode()
-    def recover_from_nan_gan(self):
-        """
-        Recover from Nan in GAN
-        """
-
-        self.gan.eval()
-
-        data = self.modifier(next(iter(self.trainloader)))
-
-        rand_inputs = torch.rand(data[0][:1].shape, device=self.device)
-        gan_outputs = self.gan(rand_inputs)
-
-        if torch.any(torch.isnan(gan_outputs)):
-            print("\nWARNING: The GAN gives NaN")
-            nets = glob.glob(
-                "{}/nets/gan-not-best-step-*.pth".format(self.path_to_save)
-            )
-            nets = sorted(sorted(nets), key=len)
-            idx = -1
-            while torch.any(torch.isnan(gan_outputs)):
-                self.gan.load_state_dict(torch.load(nets[idx]))
-                gan_outputs = self.gan(rand_inputs)
-                idx -= 1
-            print(f"WARNING: Recover a proper state there: {nets[idx]}")
-
-            self.recovered_from_nan_gan += 1
-            print(f"WARNING: Recovered from NaN {self.recovered_from_nan_gan} times\n")
-            self.gan_optim = torch.optim.AdamW(
-                self.gan.parameters(),
-                weight_decay=0.05,
-                lr=1.0e-3 / 2**self.recovered_from_nan_gan,
-            )
-            self.gan_scheduler = torch.optim.lr_scheduler.CyclicLR(
-                self.gan_optim,
-                base_lr=1.0e-3 / 2**self.recovered_from_nan_gan,
-                max_lr=5.0e-3 / 2**self.recovered_from_nan_gan,
-                step_size_up=50,
-                cycle_momentum=False,
-            )
-
-        self.gan.train()
-
+    # performance metrics
     @torch.inference_mode()
     def get_perfs(self, loader, header_str=""):
+        self.networks_data.net.eval()
+        self.networks_data.gan.eval()
 
-        self.net.eval()
-        self.gan.eval()
-
-        accs = {"net": 0.0, "net_on_gan": 0.0, "gan": 0.0}
+        accuracies = {"net": 0.0, "net_on_gan": 0.0, "gan": 0.0}
         loss = {"net": 0.0, "net_on_gan": 0.0, "gan": 0.0}
 
         for data in loader:
-
             inputs, labels = data[0].to(self.device), data[1].to(self.device)
             inputs, labels = self.modifier((inputs, labels))
 
             # Net on real data
-            outputs = self.net(inputs)
+            outputs = self.networks_data.net(inputs)
             loss["net"] += (
-                self.net_loss(outputs, labels, reduction="sum").detach().cpu().numpy()
+                self.networks_data.net_loss(outputs, labels, reduction="sum").detach().cpu().numpy()
             )
             _, hard_predicted = torch.max(outputs, 1)
             _, hard_labels = torch.max(labels, 1)
-            accs["net"] += (
+            accuracies["net"] += (
                 (hard_predicted == hard_labels).float().sum().detach().cpu().numpy()
             )
 
             # Net on Gan generated images and gan loss
             rand_inputs = torch.rand(inputs.shape, device=self.device)
             rand_labels = (
-                1.0 / self.nr_classes * torch.ones(labels.shape, device=self.device)
+                    1.0 / self.training_params.nr_classes * torch.ones(labels.shape, device=self.device)
             )
 
-            gan_outputs = self.gan(rand_inputs)
-            net_outputs = self.net(gan_outputs)
+            gan_outputs = self.networks_data.gan(rand_inputs)
+            net_outputs = self.networks_data.net(gan_outputs)
 
             loss["net_on_gan"] += (
-                self.net_loss(net_outputs, rand_labels, reduction="sum")
+                self.networks_data.net_loss(net_outputs, rand_labels, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()
             )
             loss["gan"] += (
-                self.gan_loss(rand_inputs, gan_outputs, net_outputs, reduction="sum")
+                self.networks_data.gan_loss(rand_inputs, gan_outputs, net_outputs, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()
             )
 
-        for k in accs.keys():
-            accs[k] = accs[k] / loader.dataset.nr_tot_labels
+        for k in accuracies.keys():
+            accuracies[k] = accuracies[k] / loader.dataset.nr_total_labels
         for k in loss.keys():
-            loss[k] = loss[k] / loader.dataset.nr_tot_labels
+            loss[k] = loss[k] / loader.dataset.nr_total_labels
 
-        self.net.train()
-        self.gan.train()
+        self.networks_data.net.train()
+        self.networks_data.gan.train()
 
         res_str = header_str + ": Losses: "
         for k, v in loss.items():
             res_str += f"{k} = {v:6.3f}, "
         res_str += "Accuracy: "
-        for k, v in accs.items():
+        for k, v in accuracies.items():
             res_str += f"{k} = {v:6.3f}, "
 
         print(res_str)
 
-        return accs, loss
+        return accuracies, loss
 
-    def plot_one_example(self, x, pred, score_pred, label, path2save):
+    def plot_one_example(self, x, prediction, score_prediction, label, path2save):
         """
         Plot and save one example
         """
@@ -419,16 +254,16 @@ class Training:
 
         if label == -1:
             plt.title(
-                "step = {}, pred = {}, score = {}%".format(
-                    self.epoch, pred, round(100.0 * np.nan_to_nr(score_pred, 0.0))
+                "step = {}, prediction = {}, score = {}%".format(
+                    self.epoch, prediction, round(100.0 * np.nan_to_num(score_prediction))
                 )
             )
         else:
             plt.title(
-                "step = {}, pred = {}, score = {}%, truth = {}".format(
+                "step = {}, prediction = {}, score = {}%, truth = {}".format(
                     self.epoch,
-                    pred,
-                    round(100.0 * np.nan_to_nr(score_pred, 0.0)),
+                    prediction,
+                    round(100.0 * np.nan_to_num(score_prediction)),
                     label,
                 )
             )
@@ -440,38 +275,38 @@ class Training:
 
     @torch.inference_mode()
     def save_epoch(
-        self, best, loader=None, gan_outputs=None, net_outputs=None, save_plot=True
+            self, best, loader=None, gan_outputs=None, net_outputs=None, save_plot=True
     ):
         """ """
 
         if save_plot:
             if loader is not None:
-                self.net.eval()
-                self.gan.eval()
+                self.networks_data.net.eval()
+                self.networks_data.gan.eval()
                 dims = list(self.modifier(next(iter(loader)))[0].shape)
                 rand_inputs = torch.rand(dims, device=self.device)
 
-                gan_outputs = self.gan(rand_inputs)
-                net_outputs = self.net(gan_outputs)
-                self.net.train()
-                self.gan.train()
+                gan_outputs = self.networks_data.gan(rand_inputs)
+                net_outputs = self.networks_data.net(gan_outputs)
+                self.networks_data.net.train()
+                self.networks_data.gan.train()
 
             net_outputs = torch.nn.functional.softmax(net_outputs, dim=1)
-            score_pred, predicted = torch.max(net_outputs, 1)
+            score_prediction, predicted = torch.max(net_outputs, 1)
 
-            if score_pred.ndim > 1:
-                score_pred = score_pred.mean(axis=tuple(range(1, score_pred.ndim)))
+            if score_prediction.ndim > 1:
+                score_prediction = score_prediction.mean(axis=tuple(range(1, score_prediction.ndim)))
                 predicted = predicted.to(torch.float).mean(
                     axis=tuple(range(1, predicted.ndim))
                 )
 
-            idx = torch.argmax(score_pred)
+            idx = torch.argmax(score_prediction)
 
             images = gan_outputs[idx].cpu().detach().numpy()
             self.plot_one_example(
                 images,
-                pred=predicted[idx].item(),
-                score_pred=score_pred[idx].item(),
+                prediction=predicted[idx].item(),
+                score_prediction=score_prediction[idx].item(),
                 label=-1,
                 path2save="{}/plots/example-image-{}-step-{}.png".format(
                     self.path_to_save, best, self.epoch
@@ -479,7 +314,7 @@ class Training:
             )
 
         torch.save(
-            self.gan.state_dict(),
+            self.networks_data.gan.state_dict(),
             "{}/nets/gan-{}-step-{}.pth".format(self.path_to_save, best, self.epoch),
         )
 
@@ -487,14 +322,14 @@ class Training:
     def get_example(self, loader):
         """ """
 
-        self.net.eval()
+        self.networks_data.net.eval()
 
         inputs, labels = next(iter(loader))
         inputs, labels = inputs.to(self.device), labels.to(self.device)
         inputs, labels = self.modifier((inputs, labels))
         _, labels = torch.max(labels, 1)
 
-        net_outputs = self.net(inputs)
+        net_outputs = self.networks_data.net(inputs)
 
         net_outputs = torch.nn.functional.softmax(net_outputs, dim=1)
         score_pred, predicted = torch.max(net_outputs, 1)
@@ -510,25 +345,24 @@ class Training:
         idx_max = torch.argmax(score_pred)
 
         for idx, name in [(idx_min, "min"), (idx_max, "max")]:
-
             images = inputs[idx].cpu().detach().numpy()
 
             self.plot_one_example(
                 images,
-                pred=predicted[idx].item(),
-                score_pred=score_pred[idx].item(),
+                prediction=predicted[idx].item(),
+                score_prediction=score_pred[idx].item(),
                 label=labels[idx],
                 path2save="{}/plots/example-true-image-{}-step-{}.png".format(
                     self.path_to_save, name, self.epoch
                 ),
             )
 
-        self.net.train()
+        self.networks_data.net.train()
 
     def log_perfs(self):
         """ """
 
-        for dataset, name in [(self.trainloader, "train"), (self.validloader, "valid")]:
+        for dataset, name in [(self.data_loaders.train, "train"), (self.data_loaders.valid, "valid")]:
             accs, loss = self.get_perfs(
                 loader=dataset, header_str="{} {}".format(self.epoch, name)
             )
@@ -545,16 +379,16 @@ class Training:
     def net_train(self, inputs, labels):
         """ """
 
-        self.net.train()
-        self.net_optim.zero_grad()
+        self.networks_data.net.train()
+        self.networks_data.net_optim.zero_grad()
 
-        net_outputs = self.net(inputs)
+        net_outputs = self.networks_data.net(inputs)
 
-        loss_net = self.net_loss(net_outputs, labels)
+        loss_net = self.networks_data.net_loss(net_outputs, labels)
         loss_net.backward()
 
-        torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.grad_clipping_coef)
-        self.net_optim.step()
+        torch.nn.utils.clip_grad_norm_(self.networks_data.net.parameters(), self.networks_data.grad_clipping_coeff)
+        self.networks_data.net_optim.step()
 
         _, truth = torch.max(labels, 1)
         _, predicted = torch.max(net_outputs, 1)
@@ -565,59 +399,50 @@ class Training:
     def net_gan_train(self, inputs_shape, labels_shape):
         """ """
 
-        self.net.train()
-        self.net_optim.zero_grad()
-
-        # for dim in self.sequence_dims_onnx:
-        #     inputs_shape[dim] = torch.randint(1, inputs_shape[dim] + 1, size=(1,))[0]
+        self.networks_data.net.train()
+        self.networks_data.net_optim.zero_grad()
 
         rand_inputs = torch.rand(inputs_shape, device=self.device)
         rand_labels = (
-            1.0 / self.nr_classes * torch.ones(labels_shape, device=self.device)
+                1.0 / self.training_params.nr_classes * torch.ones(labels_shape, device=self.device)
         )
 
-        r = torch.rand(1)
+        explore_probability = torch.rand(1)
         nets = glob.glob("{}/nets/gan-*-step-*.pth".format(self.path_to_save))
 
-        if (r < 0.1) and (len(nets) > 0):
-            r = torch.randint(low=0, high=len(nets), size=[1])
-            self.gan2.load_state_dict(torch.load(nets[r]))
+        # load a previous gan model or use the current one
+        gan_to_use = self.networks_data.gan
+        if (explore_probability < 0.1) and (len(nets) > 0):
+            nr_network = torch.randint(low=0, high=len(nets), size=[1])
+            self.networks_data.gan2.load_state_dict(torch.load(nets[nr_network]))
+            gan_to_use = self.networks_data.gan2
 
-            self.gan2.eval()
-            gan_outputs = self.gan2(rand_inputs)
-            self.gan2.train()
-        else:
-            self.gan.eval()
-            gan_outputs = self.gan(rand_inputs)
-            self.gan.train()
+        # get the generated output of the gan (don't train it!)
+        gan_to_use.eval()
+        gan_outputs = gan_to_use(rand_inputs)
+        gan_to_use.train()
 
-        net_outputs = self.net(gan_outputs)
-
-        loss_net_gan = self.net_loss(net_outputs, rand_labels)
+        # backprop the loss
+        net_outputs = self.networks_data.net(gan_outputs)
+        loss_net_gan = self.networks_data.net_loss(net_outputs, rand_labels)
         loss_net_gan.backward()
-        # loss_net_gan = loss_net_gan.item()
-        torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.grad_clipping_coef)
-        self.net_optim.step()
+        torch.nn.utils.clip_grad_norm_(self.networks_data.net.parameters(), self.networks_data.grad_clipping_coeff)
+        self.networks_data.net_optim.step()
 
         return loss_net_gan
 
     def gan_train(self, inputs_shape):
-        """ """
-
-        # for dim in self.sequence_dims_onnx:
-        #    inputs_shape[dim] = torch.randint(1, inputs_shape[dim] + 1, size=(1,))
-
-        self.gan.train()
-        self.gan_optim.zero_grad()
+        self.networks_data.gan.train()
+        self.networks_data.gan_optim.zero_grad()
         rand_inputs = torch.rand(inputs_shape, device=self.device)
 
-        gan_outputs = self.gan(rand_inputs)
-        self.net.eval()
+        gan_outputs = self.networks_data.gan(rand_inputs)
+        self.networks_data.net.eval()
 
-        net_outputs = self.net(gan_outputs)
-        self.net.train()
+        net_outputs = self.networks_data.net(gan_outputs)
+        self.networks_data.net.train()
 
-        loss_gan = self.gan_loss(rand_inputs, gan_outputs, net_outputs)
+        loss_gan = self.networks_data.gan_loss(rand_inputs.float(), gan_outputs, net_outputs)
         loss_gan.backward()
 
         loss_gan = loss_gan.item()
@@ -631,8 +456,8 @@ class Training:
 
             self.best_loss = loss_gan
 
-        torch.nn.utils.clip_grad_norm_(self.gan.parameters(), 1.0)
-        self.gan_optim.step()
+        torch.nn.utils.clip_grad_norm_(self.networks_data.gan.parameters(), 1.0)
+        self.networks_data.gan_optim.step()
 
         return loss_gan
 
@@ -646,78 +471,76 @@ class Training:
         loss_gan = -1.0
 
         #
-        for self.epoch in range(self.nr_epochs):
-
-            self.recover_from_nan_net()
-            self.recover_from_nan_gan()
+        for self.epoch in range(self.training_params.nr_epochs):
+            nan_recovery = NetworkNaNRecovery(self.networks_data, self.path_to_save, self.device, self.data_loaders, self.modifier)
+            nan_recovery.recover_from_nan_net()
+            nan_recovery.recover_from_nan_gan()
             self.perfs["train"]["best-gan-loss"] += [self.best_loss]
             self.perfs["valid"]["best-gan-loss"] += [-1.0]
             self.log_perfs()
-            self.get_example(loader=self.trainloader)
-            self.save_epoch(best="not-best", loader=self.trainloader)
+            self.get_example(loader=self.data_loaders.train)
+            self.save_epoch(best="not-best", loader=self.data_loaders.train)
             np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
 
             if (len(self.perfs["valid"]["loss_net"]) == 1) or (
-                self.perfs["valid"]["loss_net"][-1]
-                <= np.min(self.perfs["valid"]["loss_net"][:-1])
+                    self.perfs["valid"]["loss_net"][-1]
+                    <= np.min(self.perfs["valid"]["loss_net"][:-1])
             ):
                 torch.save(
-                    self.net.state_dict(),
+                    self.networks_data.net.state_dict(),
                     os.path.join(self.path_to_save, "nets/net-best-valid-loss.pth"),
                 )
 
             self.best_loss = float("inf")
 
-            self.net.train()
-            self.gan.train()
+            # set training mode
+            self.networks_data.net.train()
+            self.networks_data.gan.train()
 
             # Train the classifier
-            for i, data in enumerate(self.trainloader):
-
+            for i, data in enumerate(self.data_loaders.train):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
                 inputs, labels = self.modifier((inputs, labels))
 
-                r = torch.rand(1)
-                if (self.epoch >= self.nr_step_net_alone) and (r > self.proportion_net_alone):
-
-                    for _ in range(self.nr_step_gan):
-
+                proportion_net_alone = torch.rand(1)
+                if (self.epoch >= self.training_params.nr_step_net_alone) and \
+                        (proportion_net_alone > self.training_params.proportion_net_alone):
+                    for _ in range(self.training_params.nr_step_gan):
                         loss_gan = self.gan_train(list(inputs.shape))
 
-                    for _ in range(self.nr_step_net_gan):
+                    for _ in range(self.training_params.nr_step_net_gan):
                         loss_net_gan = self.net_gan_train(
                             list(inputs.shape), list(labels.shape)
                         )
-
                 else:
                     loss_net_gan = -1.0
                     loss_gan = -1.0
 
                 loss_net, acc_net = self.net_train(inputs, labels)
 
-                if i % 100 == 0:
+                if i % 10 == 0:
                     print(
-                        f"{i:03d}/{len(self.trainloader):03d}, Loss: net = {loss_net:6.3f}, net_on_gan = {loss_net_gan:6.3f}, gan = {loss_gan:6.3f}, Accs: net = {acc_net:6.3f}"
+                        f"{i:03d}/{len(self.data_loaders.train):03d}, Loss: net = {loss_net:6.3f}, net_on_gan = {loss_net_gan:6.3f}, gan = {loss_gan:6.3f}, Accs: net = {acc_net:6.3f}"
                     )
 
             if self.epoch % 100 == 0:
                 torch.save(
-                    self.net.state_dict(),
+                    self.networks_data.net.state_dict(),
                     "{}/nets/net-step-{}.pth".format(self.path_to_save, self.epoch),
                 )
-            torch.save(self.net.state_dict(), "{}/net.pth".format(self.path_to_save))
-            torch.save(self.gan.state_dict(), "{}/gan.pth".format(self.path_to_save))
+            torch.save(self.networks_data.net.state_dict(), "{}/net.pth".format(self.path_to_save))
+            torch.save(self.networks_data.gan.state_dict(), "{}/gan.pth".format(self.path_to_save))
             self.save_to_torch_full_model()
 
         if loss_gan != -1.0:
-            self.gan_scheduler.step()
+            self.networks_data.gan_scheduler.step()
 
-        self.epoch = self.nr_epochs
+        self.epoch = self.training_params.nr_epochs
         self.perfs["train"]["best-gan-loss"] += [self.best_loss]
         self.perfs["valid"]["best-gan-loss"] += [-1.0]
         self.log_perfs()
-        self.get_example(loader=self.trainloader)
-        self.save_epoch(best="not-best", loader=self.trainloader)
+        self.get_example(loader=self.data_loaders.train)
+        self.save_epoch(best="not-best", loader=self.data_loaders.train)
         np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
 
     def save_to_torch_full_model(self):
@@ -726,8 +549,8 @@ class Training:
         """
 
         checkpoint = {
-            "model": self.net,
-            "state_dict": self.net.state_dict(),
+            "model": self.networks_data.net,
+            "state_dict": self.networks_data.net.state_dict(),
         }
 
         torch.save(checkpoint, "{}/net-fullModel.pth".format(self.path_to_save))

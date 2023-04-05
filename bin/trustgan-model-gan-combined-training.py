@@ -122,18 +122,17 @@ def main(
         cfgs.close()
 
         #
-        # training_params = TrainingParams(
-        #
-        #                                  )
+        training_params = TrainingParams(batch_size=batch_size,
+                                         nr_epochs=nr_epochs,
+                                         nr_step_net_gan=nr_step_net_gan,
+                                         nr_step_gan=nr_step_gan,
+                                         nr_step_net_alone=nr_step_net_alone,
+                                         proportion_net_alone=proportion_net_alone,
+                                         network_name=network_name,
+                                         nr_classes=nr_classes
+                                         )
         training_pipeline = Training(
-            batch_size=batch_size,
-            nr_epochs=nr_epochs,
-            nr_step_net_gan=nr_step_net_gan,
-            nr_step_gan=nr_step_gan,
-            nr_step_net_alone=nr_step_net_alone,
-            proportion_net_alone=proportion_net_alone,
-            network_name=network_name,
-            nr_classes=nr_classes,
+            training_params=training_params,
             path_to_save=path2save,
             path2dataset=path2dataset,
             path_to_load_net=None,
