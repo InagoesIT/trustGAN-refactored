@@ -1,1 +1,0 @@
-/mnt/uni/COURSES/BA/trustGAN/trustGAN-main/bin/trustgan-model-gan-combined-training.py --path2save mnist-wo-gan/ --path2dataset data/MNIST --nr-classes 10 --proportion_net_alone 1 --nr-epochs 10 --batch-size 512 --device cuda:0

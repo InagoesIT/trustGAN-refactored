@@ -174,7 +174,7 @@ class Training:
                     self.modifier(next(iter(self.validloader)))[0].shape,
                     device=self.device,
                 )
-                torchsummaryX.summary(model, x_rand)
+                # torchsummaryX.summary(model, x_rand)
                 model.train()
 
         self.gan2 = copy.deepcopy(self.gan)

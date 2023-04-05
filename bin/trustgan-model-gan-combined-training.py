@@ -62,7 +62,7 @@ from py.training.training import Training
     help="Number of steps for the model to be alone, without GAN attacks",
 )
 @click.option(
-    "--proportion_net_alone",
+    "--proportion-net-alone",
     default=0.0,
     help="Proportion of the epochs where only the model is learning",
 )
