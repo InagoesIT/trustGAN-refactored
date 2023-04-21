@@ -58,7 +58,6 @@ class Net(torch.nn.Module):
         self.drp = torch.nn.Dropout(0.1)
 
     def forward(self, x):
-
         for unit in self.layers:
             x = unit(x)
         x = self.conv1(x)

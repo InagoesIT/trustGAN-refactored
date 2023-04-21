@@ -32,9 +32,9 @@ import glob
 import numpy as np
 import torch
 import torchsummaryX
+from py.dataset.data_loader import DataLoader
 
 from py.dataset.modifier import Modifier
-from py.training.data_loaders import DataLoaders
 from py.training.networks_data import NetworksData
 from py.training.training_params import TrainingParams
 from py.training.network_nan_recovery import NetworkNaNRecovery
@@ -53,6 +53,9 @@ class Training:
             device_name=None,
             verbose=True,
     ):
+        self.data_loader_test = None
+        self.data_loader_valid = None
+        self.data_loader_train = None
         self.epoch = 0
         self.perfs = None
         self.best_loss = None
@@ -64,11 +67,11 @@ class Training:
         self.modifier = Modifier(nr_channels=self.training_params.nr_channels)
 
         self.process_path2save()
-        self.data_loaders = DataLoaders(path2dataset, training_params, verbose)
+        self.set_data_loaders(path2dataset)
 
-        nr_dims = self.modifier(next(iter(self.data_loaders.valid)))[0].ndim - 2
+        nr_dims = self.modifier(next(iter(self.data_loader_valid)))[0].ndim - 2
         print(f"INFO: Found {nr_dims} dimensions")
-        self.training_params.nr_channels = self.modifier(next(iter(self.data_loaders.valid)))[0].shape[1]
+        self.training_params.nr_channels = self.modifier(next(iter(self.data_loader_valid)))[0].shape[1]
         print(f"INFO: Found {self.training_params.nr_channels} channels")
 
         self.device = self.get_device(device_name=device_name)
@@ -77,6 +80,29 @@ class Training:
         self.networks_data = NetworksData(path2net, nr_dims, self.training_params)
 
         self.load_models_if_present()
+
+    def set_data_loaders(self, path2dataset):
+        self.data_loader_train = DataLoader.get_dataloader(
+            path2dataset=path2dataset,
+            nr_classes=self.training_params.nr_classes,
+            dataset_type="train",
+            batch_size=self.training_params.batch_size,
+            verbose=self.verbose,
+        )
+        self.data_loader_valid = DataLoader.get_dataloader(
+            path2dataset=path2dataset,
+            nr_classes=self.training_params.nr_classes,
+            dataset_type="valid",
+            batch_size=self.training_params.batch_size,
+            verbose=self.verbose,
+        )
+        self.data_loader_test = DataLoader.get_dataloader(
+            path2dataset=path2dataset,
+            nr_classes=self.training_params.nr_classes,
+            dataset_type="test",
+            batch_size=self.training_params.batch_size,
+            verbose=self.verbose,
+        )
 
     def load_models_if_present(self):
         for model, path_to_load in [
@@ -91,10 +117,10 @@ class Training:
 
             if self.verbose:
                 model.eval()
-                x_rand = torch.rand(
-                    self.modifier(next(iter(self.data_loaders.valid)))[0].shape,
-                    device=self.device,
-                )
+                # x_rand = torch.rand(
+                #     self.modifier(next(iter(self.data_loader_valid)))[0].shape,
+                #     device=self.device,
+                # )
                 # torchsummaryX.summary(model, x_rand)
                 model.train()
 
@@ -362,12 +388,12 @@ class Training:
     def log_perfs(self):
         """ """
 
-        for dataset, name in [(self.data_loaders.train, "train"), (self.data_loaders.valid, "valid")]:
-            accs, loss = self.get_perfs(
+        for dataset, name in [(self.data_loader_train, "train"), (self.data_loader_valid, "valid")]:
+            accuracies, loss = self.get_perfs(
                 loader=dataset, header_str="{} {}".format(self.epoch, name)
             )
 
-            for met, met_name in [(accs, "accs"), (loss, "loss")]:
+            for met, met_name in [(accuracies, "accs"), (loss, "loss")]:
 
                 for k, v in met.items():
                     final_name = "{}_{}".format(met_name, k)
@@ -462,8 +488,6 @@ class Training:
         return loss_gan
 
     def train(self):
-        """ """
-
         self.perfs = {"train": {}, "valid": {}}
         self.perfs["train"]["best-gan-loss"] = []
         self.perfs["valid"]["best-gan-loss"] = []
@@ -472,14 +496,14 @@ class Training:
 
         #
         for self.epoch in range(self.training_params.nr_epochs):
-            nan_recovery = NetworkNaNRecovery(self.networks_data, self.path_to_save, self.device, self.data_loaders, self.modifier)
+            nan_recovery = NetworkNaNRecovery(self.networks_data, self.path_to_save, self.device, self.data_loader_train, self.modifier)
             nan_recovery.recover_from_nan_net()
             nan_recovery.recover_from_nan_gan()
             self.perfs["train"]["best-gan-loss"] += [self.best_loss]
             self.perfs["valid"]["best-gan-loss"] += [-1.0]
             self.log_perfs()
-            self.get_example(loader=self.data_loaders.train)
-            self.save_epoch(best="not-best", loader=self.data_loaders.train)
+            self.get_example(loader=self.data_loader_train)
+            self.save_epoch(best="not-best", loader=self.data_loader_train)
             np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
 
             if (len(self.perfs["valid"]["loss_net"]) == 1) or (
@@ -498,7 +522,7 @@ class Training:
             self.networks_data.gan.train()
 
             # Train the classifier
-            for i, data in enumerate(self.data_loaders.train):
+            for i, data in enumerate(self.data_loader_train):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
                 inputs, labels = self.modifier((inputs, labels))
 
@@ -520,7 +544,7 @@ class Training:
 
                 if i % 10 == 0:
                     print(
-                        f"{i:03d}/{len(self.data_loaders.train):03d}, Loss: net = {loss_net:6.3f}, net_on_gan = {loss_net_gan:6.3f}, gan = {loss_gan:6.3f}, Accs: net = {acc_net:6.3f}"
+                        f"{i:03d}/{len(self.data_loader_train):03d}, Loss: net = {loss_net:6.3f}, net_on_gan = {loss_net_gan:6.3f}, gan = {loss_gan:6.3f}, Accs: net = {acc_net:6.3f}"
                     )
 
             if self.epoch % 100 == 0:
@@ -539,8 +563,8 @@ class Training:
         self.perfs["train"]["best-gan-loss"] += [self.best_loss]
         self.perfs["valid"]["best-gan-loss"] += [-1.0]
         self.log_perfs()
-        self.get_example(loader=self.data_loaders.train)
-        self.save_epoch(best="not-best", loader=self.data_loaders.train)
+        self.get_example(loader=self.data_loader_train)
+        self.save_epoch(best="not-best", loader=self.data_loader_train)
         np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
 
     def save_to_torch_full_model(self):

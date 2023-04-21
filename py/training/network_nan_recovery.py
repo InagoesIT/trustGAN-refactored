@@ -4,11 +4,11 @@ import torch
 
 
 class NetworkNaNRecovery:
-    def __init__(self, networks_data, path_to_save, device, data_loaders, modifier):
+    def __init__(self, networks_data, path_to_save, device, data_loader_train, modifier):
         self.networks_data = networks_data
         self.path_to_save = path_to_save
         self.device = device
-        self.data_loaders = data_loaders
+        self.data_loader_train = data_loader_train
         self.modifier = modifier
 
     @torch.inference_mode()
@@ -19,7 +19,7 @@ class NetworkNaNRecovery:
 
         self.networks_data.net.eval()
 
-        data = next(iter(self.data_loaders.train))
+        data = next(iter(self.data_loader_train))
 
         inputs = data[0][:1].to(self.device)
         inputs, _ = self.modifier((inputs, None))
@@ -54,7 +54,7 @@ class NetworkNaNRecovery:
 
         self.networks_data.gan.eval()
 
-        data = self.modifier(next(iter(self.data_loaders.train)))
+        data = self.modifier(next(iter(self.data_loader_train)))
 
         rand_inputs = torch.rand(data[0][:1].shape, device=self.device)
         gan_outputs = self.networks_data.gan(rand_inputs)
