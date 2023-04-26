@@ -31,6 +31,8 @@ import os
 import sys
 import click
 
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 from py.training.training_params import TrainingParams
 from py.utils.create_gif import create_gif
 from py.utils.plot_perfs import plot_perfs
@@ -135,10 +137,10 @@ def main(
             training_params=training_params,
             path_to_save=path2save,
             path2dataset=path2dataset,
-            path_to_load_net=None,
-            path_to_load_gan=None,
-            path2net=None,
-            device_name=None,
+            path_to_load_net=path_to_load_net,
+            path_to_load_gan=path_to_load_gan,
+            path2net=path2net,
+            device_name=device,
             verbose=True,
         )
         training_pipeline.train()

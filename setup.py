@@ -62,9 +62,9 @@ setuptools.setup(
         "py.training.networks"
     ],
     package_dir={
-        "py.dataset": "py/dataset/",
-        "py.training": "py/training/",
-        "py.utils": "py/utils/",
+        "py.dataset": "py/dataset",
+        "py.training": "py/training",
+        "py.utils": "py/utils",
         "py.training.networks": "py/training/networks",
     },
     long_description=LONG_DESCRIPTION,

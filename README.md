@@ -39,25 +39,11 @@ We will now train two models, one without TrustGAN and another with it,
 with a selected device `<device>`:
 
 ```bash
-python3 ../bin/trustgan-model-gan-combined-training.py \
-    --path2save "mnist-wo-gan/" \
-    --path2dataset "data/MNIST" \
-    --nb-classes 10 \
-    --prop-net-alone 1 \
-    --num-epochs 100 \
-    --batch-size 512 \
-    --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2dataset "data/MNIST" --nr-classes 10 --nr-epochs 3 --batch-size 256 --proportion-net-alone 1 --device "cuda:0"
 ```
 
 ```bash
-python3 ../bin/trustgan-model-gan-combined-training.py \
-    --path2save "mnist-wi-gan/" \
-    --path2dataset "data/MNIST" \
-    --nb-classes 10 \
-    --num-epochs 100 \
-    --batch-size 512 \
-    --nb-step-net-alone 1 \
-    --device "cuda:1"
+python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2dataset "data/MNIST" --nr-classes 10 --nr-epochs 3 --batch-size 256 --nr-step-net-alone 1 --device "cuda:0"
 ```
 
 ## Test

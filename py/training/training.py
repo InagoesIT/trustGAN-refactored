@@ -31,7 +31,6 @@ import matplotlib.pyplot as plt
 import glob
 import numpy as np
 import torch
-import torchsummaryX
 from py.dataset.data_loader import DataLoader
 
 from py.dataset.modifier import Modifier
@@ -80,6 +79,8 @@ class Training:
         self.networks_data = NetworksData(path2net, nr_dims, self.training_params)
 
         self.load_models_if_present()
+        
+        self.networks_data.gan = self.networks_data.gan.to(self.device)
 
     def set_data_loaders(self, path2dataset):
         self.data_loader_train = DataLoader.get_dataloader(
