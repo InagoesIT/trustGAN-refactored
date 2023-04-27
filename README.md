@@ -43,7 +43,7 @@ python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2
 ```
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2dataset "data/MNIST" --nr-classes 10 --nr-epochs 3 --batch-size 256 --nr-step-net-alone 1 --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2dataset "data/MNIST" --nr-classes 10 --nr-epochs 1 --batch-size 256 --nr-step-net-alone 1 --device "cuda:0"
 ```
 
 ## Test
