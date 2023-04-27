@@ -3,3 +3,4 @@
 /.idea
 /trustgan.egg-info
 run.ipynb
+*.pyc
