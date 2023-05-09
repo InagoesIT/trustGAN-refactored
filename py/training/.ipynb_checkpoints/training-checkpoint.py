@@ -31,8 +31,9 @@ import matplotlib.pyplot as plt
 import glob
 import numpy as np
 import torch
-from py.dataset.data_loader import DataLoader
 
+from py.dataset.data_loader import DataLoader
+from py.dataset.dataset_handler import DatasetHandler
 from py.dataset.modifier import Modifier
 from py.training.networks_data import NetworksData
 from py.training.training_params import TrainingParams
@@ -51,10 +52,9 @@ class Training:
             path2net=None,
             device_name=None,
             verbose=True,
+            seed=42, 
+            k_fold=10
     ):
-        self.data_loader_test = None
-        self.data_loader_valid = None
-        self.data_loader_train = None
         self.epoch = 0
         self.perfs = None
         self.best_loss = None
@@ -63,48 +63,89 @@ class Training:
         self.path_to_load_net = path_to_load_net
         self.path_to_load_gan = path_to_load_gan
         self.training_params = training_params
+        self.loss_gan = -1.0
+        self.path2net = path2net
         self.modifier = Modifier(nr_channels=self.training_params.nr_channels)
-
+        
+        Training.set_seeds(seed)
         self.process_path2save()
-        self.set_data_loaders(path2dataset)
+        
+        self.k_fold = k_fold
+        self.data_loaders_train = []
+        self.data_loaders_validation = []
+        self.data_loader_test = None
+        self.set_data_loaders_k_fold(path2dataset)
 
-        nr_dims = self.modifier(next(iter(self.data_loader_valid)))[0].ndim - 2
-        print(f"INFO: Found {nr_dims} dimensions")
-        self.training_params.nr_channels = self.modifier(next(iter(self.data_loader_valid)))[0].shape[1]
+        self.nr_dims = self.modifier(next(iter(self.data_loaders_validation[0])))[0].ndim - 2
+        print(f"INFO: Found {self.nr_dims} dimensions")
+        self.training_params.nr_channels = self.modifier(next(iter(self.data_loaders_validation[0])))[0].shape[1]
         print(f"INFO: Found {self.training_params.nr_channels} channels")
 
         self.device = self.get_device(device_name=device_name)
-        self.sequence_dims_onnx = np.arange(2, 2 + nr_dims)
+        self.sequence_dims_onnx = np.arange(2, 2 + self.nr_dims)
 
-        self.networks_data = NetworksData(path2net, nr_dims, self.training_params)
-
-        self.load_models_if_present()
+        self.networks_data = None
         
-        self.networks_data.gan = self.networks_data.gan.to(self.device)
+    def set_seeds(seed):
+        np.random.seed(seed)
+        torch.manual_seed(seed)      
+    
+    def set_data_loaders_k_fold(self, path2dataset):
+        input_items, labels = DataLoader.get_processed_input_and_labels(
+                path2dataset=path2dataset,
+                nr_classes=self.training_params.nr_classes,
+                dataset_type="trainvalidation")
+        
+        dataset = DatasetHandler(input_items, labels)
+        total_size = len(dataset)
+        fold_size = int(total_size / self.k_fold)
+        
+        for fold_index in range(self.k_fold):
+            train_set, validation_set = Training.get_train_and_validation_dataset_k_fold(
+                        dataset, fold_index, fold_size, total_size)
 
-    def set_data_loaders(self, path2dataset):
-        self.data_loader_train = DataLoader.get_dataloader(
-            path2dataset=path2dataset,
-            nr_classes=self.training_params.nr_classes,
-            dataset_type="train",
-            batch_size=self.training_params.batch_size,
-            verbose=self.verbose,
-        )
-        self.data_loader_valid = DataLoader.get_dataloader(
-            path2dataset=path2dataset,
-            nr_classes=self.training_params.nr_classes,
-            dataset_type="valid",
-            batch_size=self.training_params.batch_size,
-            verbose=self.verbose,
-        )
+            self.data_loaders_train.append(
+                        DataLoader.get_dataloader(
+                                    dataset=train_set,
+                                    batch_size=self.training_params.batch_size))
+            self.data_loaders_validation.append(
+                        DataLoader.get_dataloader(
+                                    dataset=validation_set,
+                                    batch_size=self.training_params.batch_size))
+                
+        self.set_data_loader_k_fold_test(path2dataset)      
+                
+    def set_data_loader_k_fold_test(self, path2dataset):
+        input_items, labels = DataLoader.get_processed_input_and_labels(
+                    path2dataset=path2dataset,
+                    nr_classes=self.training_params.nr_classes,
+                    dataset_type="test")
+        dataset = DatasetHandler(input_items, labels)
+
         self.data_loader_test = DataLoader.get_dataloader(
-            path2dataset=path2dataset,
-            nr_classes=self.training_params.nr_classes,
-            dataset_type="test",
-            batch_size=self.training_params.batch_size,
-            verbose=self.verbose,
-        )
+                                    dataset=dataset,
+                                    batch_size=self.training_params.batch_size)
+    
+    @staticmethod         
+    def get_train_and_validation_dataset_k_fold(dataset, fold_index, fold_size, total_size):
+        validation_start_index = fold_index * fold_size
+        validation_end_index = validation_start_index + fold_size            
+        validation_indices = list(range(validation_start_index,validation_end_index))
+            
+        train_left_indices = list(range(0, validation_start_index))
+        train_right_indices = list(range(validation_end_index, total_size))
+        train_indices = train_left_indices + train_right_indices
+        
+        train_data = dataset.data[train_indices]
+        train_label = dataset.label[train_indices]
+        train_set = DatasetHandler(train_data, train_label)
 
+        validation_data = dataset.data[validation_indices]
+        validation_label = dataset.label[validation_indices]
+        validation_set = DatasetHandler(validation_data, validation_label)
+                
+        return train_set, validation_set
+                
     def load_models_if_present(self):
         for model, path_to_load in [
             (self.networks_data.net, self.path_to_load_net),
@@ -119,7 +160,7 @@ class Training:
             if self.verbose:
                 model.eval()
                 # x_rand = torch.rand(
-                #     self.modifier(next(iter(self.data_loader_valid)))[0].shape,
+                #     self.modifier(next(iter(self.data_loaders_validation[0])))[0].shape,
                 #     device=self.device,
                 # )
                 # torchsummaryX.summary(model, x_rand)
@@ -147,6 +188,7 @@ class Training:
             print(f"Device = {device}, {device_name}")
 
         return device
+        
 
     @torch.inference_mode()
     def get_predictions(self, loader, score_type="MCP"):
@@ -386,26 +428,7 @@ class Training:
 
         self.networks_data.net.train()
 
-    def log_perfs(self):
-        """ """
-
-        for dataset, name in [(self.data_loader_train, "train"), (self.data_loader_valid, "valid")]:
-            accuracies, loss = self.get_perfs(
-                loader=dataset, header_str="{} {}".format(self.epoch, name)
-            )
-
-            for met, met_name in [(accuracies, "accs"), (loss, "loss")]:
-
-                for k, v in met.items():
-                    final_name = "{}_{}".format(met_name, k)
-                    if final_name not in self.perfs[name].keys():
-                        self.perfs[name][final_name] = []
-
-                    self.perfs[name][final_name] += [v]
-
     def net_train(self, inputs, labels):
-        """ """
-
         self.networks_data.net.train()
         self.networks_data.net_optim.zero_grad()
 
@@ -424,8 +447,6 @@ class Training:
         return loss_net, acc_net
 
     def net_gan_train(self, inputs_shape, labels_shape):
-        """ """
-
         self.networks_data.net.train()
         self.networks_data.net_optim.zero_grad()
 
@@ -472,8 +493,8 @@ class Training:
         loss_gan = self.networks_data.gan_loss(rand_inputs.float(), gan_outputs, net_outputs)
         loss_gan.backward()
 
-        loss_gan = loss_gan.item()
-        if loss_gan < self.best_loss:
+        self.loss_gan = loss_gan.item()
+        if self.loss_gan < self.best_loss:
             self.save_epoch(
                 best="best",
                 gan_outputs=gan_outputs,
@@ -481,94 +502,136 @@ class Training:
                 save_plot=True,
             )
 
-            self.best_loss = loss_gan
+            self.best_loss = self.loss_gan
 
         torch.nn.utils.clip_grad_norm_(self.networks_data.gan.parameters(), 1.0)
         self.networks_data.gan_optim.step()
 
-        return loss_gan
+        return loss_gan               
 
+    def log_perfs(self, model_index):
+        dataloaders_and_dataset_types = [(self.data_loaders_train[model_index], "train")]
+        if self.epoch % 25 == 0:
+            dataloaders_and_dataset_types.append((self.data_loaders_validation[model_index], "valid"))
+                
+        for dataloader, dataset_type in dataloaders_and_dataset_types:
+            accuracies, losses = self.get_perfs(
+                loader=dataloader, header_str="{} {}".format(self.epoch, dataset_type)
+            )
+
+            for metric, metric_name in [(accuracies, "accs"), (losses, "loss")]:
+                for network_task, value in metric.items():
+                    metric_final_name = "{}_{}".format(metric_name, network_task)
+                    if metric_final_name not in self.perfs[dataset_type].keys():
+                        self.perfs[dataset_type][metric_final_name] = []
+                    if model_index == 0:
+                        self.perfs[dataset_type][metric_final_name] += [value]
+                        continue
+                    self.perfs[dataset_type][metric_final_name][self.epoch] += value
+                    self.perfs[dataset_type][metric_final_name][self.epoch] /= 2
+                
+    def process_performances(self, model_index):
+        if model_index == 0:
+            self.perfs["train"]["best-gan-loss"] += [self.best_loss]
+            self.perfs["valid"]["best-gan-loss"] += [-1.0]
+        else:
+            self.perfs["train"]["best-gan-loss"][self.epoch] += self.best_loss
+            self.perfs["train"]["best-gan-loss"][self.epoch] /= 2
+            self.perfs["valid"]["best-gan-loss"][self.epoch] += -1.0
+            self.perfs["valid"]["best-gan-loss"][self.epoch] /= 2
+                
+        self.log_perfs(model_index)
+        self.get_example(loader=self.data_loaders_train[model_index])
+        self.save_epoch(best="not-best", loader=self.data_loaders_train[model_index])
+        np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
+                
+    def recover_from_nan(self, model_index):
+        nan_recovery = NetworkNaNRecovery(self.networks_data, self.path_to_save, self.device, 
+                                          self.data_loaders_train[model_index], self.modifier)
+        nan_recovery.recover_from_nan_net()
+        nan_recovery.recover_from_nan_gan()        
+    
+    def train_models(self, model_index):
+        for i, data in enumerate(self.data_loaders_train[model_index]):
+            inputs, labels = data[0].to(self.device), data[1].to(self.device)
+            inputs, labels = self.modifier((inputs, labels))
+
+            proportion_net_alone = torch.rand(1)
+            if (self.epoch >= self.training_params.nr_step_net_alone) and \
+                    (proportion_net_alone > self.training_params.proportion_net_alone):
+                for _ in range(self.training_params.nr_step_gan):
+                    self.loss_gan = self.gan_train(list(inputs.shape))
+
+                for _ in range(self.training_params.nr_step_net_gan):
+                    loss_net_gan = self.net_gan_train(
+                        list(inputs.shape), list(labels.shape))
+            else:
+                loss_net_gan = -1.0
+                self.loss_gan = -1.0
+
+            loss_net, acc_net = self.net_train(inputs, labels)
+
+            if i % 10 == 0:
+                print(
+                        f"network index: {model_index}; data index: {i:03d}/{len(self.data_loaders_train[model_index]):03d}, Loss: net = {loss_net:6.3f}, net_on_gan = {loss_net_gan:6.3f}, gan = {self.loss_gan:6.3f}, Accs: net = {acc_net:6.3f}"
+                    )
+                
+    def save_model_data(self):
+        if self.epoch % 50 == 0:
+            torch.save(
+                self.networks_data.net.state_dict(),
+                "{}/nets/net-step-{}.pth".format(self.path_to_save, self.epoch),
+            )
+            torch.save(self.networks_data.net.state_dict(), "{}/net.pth".format(self.path_to_save))
+            torch.save(self.networks_data.gan.state_dict(), "{}/gan.pth".format(self.path_to_save))
+            self.save_to_torch_full_model()
+                
+    def save_best_validation_loss(self):
+        if (len(self.perfs["valid"]["loss_net"]) == 1) or (
+                self.perfs["valid"]["loss_net"][-1]
+                <= np.min(self.perfs["valid"]["loss_net"][:-1])
+        ):
+            torch.save(
+                self.networks_data.net.state_dict(),
+                os.path.join(self.path_to_save, "nets/net-best-valid-loss.pth"),
+            )
+
+    def train_model_with_index(self, model_index):        
+        for self.epoch in range(self.training_params.nr_epochs):
+            self.recover_from_nan(model_index)                
+            self.process_performances(model_index)
+            self.save_best_validation_loss()
+            self.best_loss = float("inf")
+                
+            # set training mode
+            self.networks_data.net.train()
+            self.networks_data.gan.train()
+
+            self.train_models(model_index)
+                
+            self.save_model_data()            
+
+        if self.loss_gan != -1.0:
+            self.networks_data.gan_scheduler.step()
+        self.process_performances(model_index)
+        
     def train(self):
         self.perfs = {"train": {}, "valid": {}}
         self.perfs["train"]["best-gan-loss"] = []
         self.perfs["valid"]["best-gan-loss"] = []
         self.best_loss = float("inf")
-        loss_gan = -1.0
         
-        self.perfs = np.load("{}/performances.npy".format(self.path_to_save), allow_pickle=True)
-        self.perfs = self.perfs.item()
-        
-        for self.epoch in range(self.training_params.nr_epochs):
-            nan_recovery = NetworkNaNRecovery(self.networks_data, self.path_to_save, self.device, self.data_loader_train, self.modifier)
-            nan_recovery.recover_from_nan_net()
-            nan_recovery.recover_from_nan_gan()
-            self.perfs["train"]["best-gan-loss"] += [self.best_loss]
-            self.perfs["valid"]["best-gan-loss"] += [-1.0]
-            self.log_perfs()
-            self.get_example(loader=self.data_loader_train)
-            self.save_epoch(best="not-best", loader=self.data_loader_train)
-            np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
-
-            if (len(self.perfs["valid"]["loss_net"]) == 1) or (
-                    self.perfs["valid"]["loss_net"][-1]
-                    <= np.min(self.perfs["valid"]["loss_net"][:-1])
-            ):
-                torch.save(
-                    self.networks_data.net.state_dict(),
-                    os.path.join(self.path_to_save, "nets/net-best-valid-loss.pth"),
-                )
-
-            self.best_loss = float("inf")
-
-            # set training mode
-            self.networks_data.net.train()
-            self.networks_data.gan.train()
-
-            # Train the classifier
-            for i, data in enumerate(self.data_loader_train):
-                inputs, labels = data[0].to(self.device), data[1].to(self.device)
-                inputs, labels = self.modifier((inputs, labels))
-
-                proportion_net_alone = torch.rand(1)
-                if (self.epoch >= self.training_params.nr_step_net_alone) and \
-                        (proportion_net_alone > self.training_params.proportion_net_alone):
-                    for _ in range(self.training_params.nr_step_gan):
-                        loss_gan = self.gan_train(list(inputs.shape))
-
-                    for _ in range(self.training_params.nr_step_net_gan):
-                        loss_net_gan = self.net_gan_train(
-                            list(inputs.shape), list(labels.shape)
-                        )
-                else:
-                    loss_net_gan = -1.0
-                    loss_gan = -1.0
-
-                loss_net, acc_net = self.net_train(inputs, labels)
-
-                if i % 10 == 0:
-                    print(
-                        f"{i:03d}/{len(self.data_loader_train):03d}, Loss: net = {loss_net:6.3f}, net_on_gan = {loss_net_gan:6.3f}, gan = {loss_gan:6.3f}, Accs: net = {acc_net:6.3f}"
-                    )
-
-            if self.epoch % 100 == 0:
-                torch.save(
-                    self.networks_data.net.state_dict(),
-                    "{}/nets/net-step-{}.pth".format(self.path_to_save, self.epoch),
-                )
-            torch.save(self.networks_data.net.state_dict(), "{}/net.pth".format(self.path_to_save))
-            torch.save(self.networks_data.gan.state_dict(), "{}/gan.pth".format(self.path_to_save))
-            self.save_to_torch_full_model()
-
-        if loss_gan != -1.0:
-            self.networks_data.gan_scheduler.step()
-
-        self.epoch = self.training_params.nr_epochs
-        self.perfs["train"]["best-gan-loss"] += [self.best_loss]
-        self.perfs["valid"]["best-gan-loss"] += [-1.0]
-        self.log_perfs()
-        self.get_example(loader=self.data_loader_train)
-        self.save_epoch(best="not-best", loader=self.data_loader_train)
-        np.save("{}/performances.npy".format(self.path_to_save), self.perfs)
+        if os.path.exists("{}/performances.npy".format(self.path_to_save)):    
+            self.perfs = np.load("{}/performances.npy".format(self.path_to_save), allow_pickle=True)
+            self.perfs = self.perfs.item()
+                
+        for model_index in range(self.k_fold):
+            self.epoch = 0
+            self.networks_data = NetworksData(self.path2net, self.nr_dims, self.training_params)
+            self.networks_data.gan = self.networks_data.gan.to(self.device)
+            self.load_models_if_present()
+            
+            self.train_model_with_index(model_index)
 
     def save_to_torch_full_model(self):
         """
