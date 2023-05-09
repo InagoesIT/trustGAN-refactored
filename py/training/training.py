@@ -495,8 +495,8 @@ class Training:
         self.best_loss = float("inf")
         loss_gan = -1.0
         
-        self.perfs = np.load("{}/performances.npy".format(self.path_to_save), allow_pickle=True)
-        self.perfs = self.perfs.item()
+        # self.perfs = np.load("{}/performances.npy".format(self.path_to_save), allow_pickle=True)
+        # self.perfs = self.perfs.item()
         
         for self.epoch in range(self.training_params.nr_epochs):
             nan_recovery = NetworkNaNRecovery(self.networks_data, self.path_to_save, self.device, self.data_loader_train, self.modifier)

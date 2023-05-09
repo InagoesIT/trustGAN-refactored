@@ -1,1 +1,1 @@
-../bin/trustgan-model-gan-combined-training.py --path2save ../ --path2dataset data/MNIST --nr-classes 10 --nr-epochs 1 --batch-size 256 --nr-step-net-alone 1 --device cuda:0
+../bin/trustgan-model-gan-combined-training.py --path2save .. --path2dataset data/MNIST --nr-classes 10 --nr-epochs 2 --batch-size 256 --nr-step-net-alone 1 --device cuda:0
