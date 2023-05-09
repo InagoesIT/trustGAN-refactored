@@ -36,15 +36,18 @@ import torchvision.transforms
 
 
 class DatasetSaver:
-    def __init__(self, dataset, path2save, splits=None, seed=42):
+    def __init__(self, dataset, path2save, splits=None, seed=42, split_data=False):
         # how will the dataset be split -> training, validation, testing
         self.splits = splits
-        self.set_splits()
         self.dataset = dataset
         self.path2save = path2save
-
-        np.random.seed(seed)
-        data = self.get_data()
+        DatasetSaver.set_seeds(seed)
+        
+        if split_data:
+            self.set_splits()
+            data = self.get_data()
+        else:
+            data = self.get_data_no_split()
         self.save_data(data)
 
     def set_splits(self):
@@ -57,6 +60,25 @@ class DatasetSaver:
             self.splits[-1] = 1.0 - np.sum(self.splits[:-1])
 
         self.splits = np.array(self.splits)
+        
+    def set_seeds(seed):
+        np.random.seed(seed)
+        torch.manual_seed(seed)   
+        
+    def get_data_no_split(self):
+        if hasattr(torchvision.datasets, self.dataset):
+            data = self.get_torch_dataset_no_split()
+        else:
+            print(f"ERROR: did not find the dataset {self.dataset}")
+            raise AttributeError
+
+        for k, v in data.items():
+            nr_unique_elements = torch.unique(v["y"]).size()
+            print(
+                f"INFO: {k} has x shape = {v['x'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
+            )
+
+        return data
 
     def get_data(self):
         if hasattr(torchvision.datasets, self.dataset):
@@ -72,6 +94,24 @@ class DatasetSaver:
             )
 
         return data
+    
+    def get_torch_dataset_no_split(self):
+        """ Returns data with trainvalid and test keys"""
+
+        data = self.get_train_and_validation_no_split()
+
+        # Test
+        test_set = self.get_torch_dataset_with_type(is_train=False)
+        data["test"] = test_set
+
+        # Calculate the dataset train-test split
+        self.splits = np.array(
+            [data[el]["y"].shape[0] for el in ["trainvalidation", "test"]], dtype=float
+        )
+        self.splits /= self.splits.sum()
+        print("INFO: splits:", self.splits)
+
+        return data
 
     def get_torch_dataset(self):
         """ Returns data with train, valid and test keys"""
@@ -79,22 +119,38 @@ class DatasetSaver:
         data = self.get_train_and_validation()
 
         # Test
-        test_set = self.get_torch_dataset_with_type(dataset_type="test")
+        test_set = self.get_torch_dataset_with_type(is_train=False)
         data["test"] = test_set
 
         # New splits
         print("INFO: previous splits:", self.splits)
         self.splits = np.array(
-            [data[el]["y"].shape[0] for el in ["train", "valid", "test"]], dtype=float
+            [data[el]["y"].shape[0] for el in ["train", "validation", "test"]], dtype=float
         )
         self.splits /= self.splits.sum()
         print("INFO: new splits:", self.splits)
 
         return data
+    
+    def get_train_and_validation_no_split(self):
+        data = {}
+        train_valid_set = self.get_torch_dataset_with_type(is_train=True)
+
+        # shuffle elements
+        nr_samples = train_valid_set["y"].shape[0]
+        random_indexes = np.arange(nr_samples)
+        np.random.shuffle(random_indexes)
+
+        data["trainvalidation"] = {
+            "x": train_valid_set["x"][random_indexes],
+            "y": train_valid_set["y"][random_indexes],
+        }
+
+        return data
 
     def get_train_and_validation(self):
         data = {}
-        train_valid_set = self.get_torch_dataset_with_type(dataset_type="trainval")
+        train_valid_set = self.get_torch_dataset_with_type(is_train=True)
 
         # shuffle elements
         nr_samples = train_valid_set["y"].shape[0]
@@ -109,14 +165,14 @@ class DatasetSaver:
             "x": train_valid_set["x"][:nr_split_train],
             "y": train_valid_set["y"][:nr_split_train],
         }
-        data["valid"] = {
+        data["validation"] = {
             "x": train_valid_set["x"][nr_split_train:],
             "y": train_valid_set["y"][nr_split_train:],
         }
 
         return data
 
-    def get_torch_dataset_with_type(self, dataset_type=None):
+    def get_torch_dataset_with_type(self, is_train):
         with tempfile.TemporaryDirectory() as tmp_dir_name:
             if self.dataset in ["OxfordIIITPet"]:
                 kwargs = {"target_types": "segmentation"}
@@ -125,7 +181,7 @@ class DatasetSaver:
             data = (
                 getattr(torchvision.datasets, self.dataset)(
                     tmp_dir_name,
-                    dataset_type,
+                    is_train,
                     download=True,
                     transform=torchvision.transforms.Compose(
                         [

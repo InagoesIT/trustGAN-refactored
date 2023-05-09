@@ -66,6 +66,8 @@ class Training:
         self.modifier = Modifier(nr_channels=self.training_params.nr_channels)
 
         self.process_path2save()
+        self.data_loaders_train = []
+        self.data_loaders_valid = []
         self.set_data_loaders(path2dataset)
 
         nr_dims = self.modifier(next(iter(self.data_loader_valid)))[0].ndim - 2
@@ -103,7 +105,32 @@ class Training:
             dataset_type="test",
             batch_size=self.training_params.batch_size,
             verbose=self.verbose,
-        )
+        )     
+    
+    def set_data_loaders_10_fold(self, k_fold=10):
+        total_size = len(dataset)
+        fold_size = int(total_size / k_fold)
+        
+        for fold_index in range(k_fold):
+            validation_start_index = fold_index * fold_size
+            validation_end_index = validation_start_index + fold_size
+            
+            validation_indices = list(range(validation_start_index,validation_end_index))
+            train_left_indices = list(range(0, validation_start_index))
+            train_right_indices = list(range(validation_end_index, total_size))
+
+            train_indices = train_left_indices + train_right_indices
+
+            train_set = torch.utils.data.dataset.Subset(dataset, train_indices)
+            val_set = torch.utils.data.dataset.Subset(dataset, val_indices)
+
+            self.data_loaders_train.append(
+                        torch.utils.data.DataLoader(train_set, shuffle=True,
+                                            nr_classes=self.training_params.nr_classes,
+                                            batch_size=self.training_params.batch_size,
+                                            verbose=self.verbose))
+            val_loader = torch.utils.data.DataLoader(val_set, batch_size=50,
+                                          shuffle=True, num_workers=4)
 
     def load_models_if_present(self):
         for model, path_to_load in [
@@ -147,6 +174,7 @@ class Training:
             print(f"Device = {device}, {device_name}")
 
         return device
+        
 
     @torch.inference_mode()
     def get_predictions(self, loader, score_type="MCP"):

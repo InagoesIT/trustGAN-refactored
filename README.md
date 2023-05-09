@@ -23,14 +23,14 @@ We will work within `./xps/`:
 You can download in-distribution (ID) sample datasets within `data/`:
 
 ```bash
-python3 ../bin/trustgan-download-data.py --path2save "data/" --dataset "MNIST"
+python ../bin/trustgan-download-data.py --path2save "data/" --dataset "MNIST"
 ```
 
 You can download out-of-distribution (OOD) sample datasets within `data/`:
 
 ```bash
-python3 ../bin/trustgan-download-data.py --path2save "data/" --dataset "FashionMNIST"
-python3 ../bin/trustgan-download-data.py --path2save "data/" --dataset "CIFAR10"
+python ../bin/trustgan-download-data.py --path2save "data/" --dataset "FashionMNIST"
+python ../bin/trustgan-download-data.py --path2save "data/" --dataset "CIFAR10"
 ```
 
 ### Train a model
