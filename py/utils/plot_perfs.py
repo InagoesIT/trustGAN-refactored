@@ -45,3 +45,4 @@ def plot_perfs(path_to_load):
         plt.grid()
         plt.savefig("{}/performance-plots/{}.png".format(path_to_load, metric))
         plt.clf()
+        

@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 import glob
 import numpy as np
 import torch
+import time
 
 from py.dataset.data_loader import DataLoader
 from py.dataset.dataset_handler import DatasetHandler
@@ -53,7 +54,8 @@ class Training:
             device_name=None,
             verbose=True,
             seed=42, 
-            k_fold=10
+            k_fold=5,
+            epoch_to_validate=25
     ):
         self.epoch = 0
         self.perfs = None
@@ -65,7 +67,9 @@ class Training:
         self.training_params = training_params
         self.loss_gan = -1.0
         self.path2net = path2net
-        self.modifier = Modifier(nr_channels=self.training_params.nr_channels)
+        self.epoch_to_validate = epoch_to_validate
+        self.modifier = Modifier(nr_channels=self.training_params.nr_channels) 
+        self.execution_data = {"time": []}
         
         Training.set_seeds(seed)
         self.process_path2save()
@@ -511,13 +515,16 @@ class Training:
 
     def log_perfs(self, model_index):
         dataloaders_and_dataset_types = [(self.data_loaders_train[model_index], "train")]
-        if self.epoch % 25 == 0:
+        epoch = self.epoch
+        if self.epoch % self.epoch_to_validate == 0:
             dataloaders_and_dataset_types.append((self.data_loaders_validation[model_index], "valid"))
                 
         for dataloader, dataset_type in dataloaders_and_dataset_types:
             accuracies, losses = self.get_perfs(
                 loader=dataloader, header_str="{} {}".format(self.epoch, dataset_type)
             )
+            if dataset_type == "valid":
+                epoch //= self.epoch_to_validate
 
             for metric, metric_name in [(accuracies, "accs"), (losses, "loss")]:
                 for network_task, value in metric.items():
@@ -527,8 +534,8 @@ class Training:
                     if model_index == 0:
                         self.perfs[dataset_type][metric_final_name] += [value]
                         continue
-                    self.perfs[dataset_type][metric_final_name][self.epoch] += value
-                    self.perfs[dataset_type][metric_final_name][self.epoch] /= 2
+                    self.perfs[dataset_type][metric_final_name][epoch] += value
+                    self.perfs[dataset_type][metric_final_name][epoch] /= 2
                 
     def process_performances(self, model_index):
         if model_index == 0:
@@ -598,6 +605,8 @@ class Training:
 
     def train_model_with_index(self, model_index):        
         for self.epoch in range(self.training_params.nr_epochs):
+            start_time = time.time()
+            
             self.recover_from_nan(model_index)                
             self.process_performances(model_index)
             self.save_best_validation_loss()
@@ -609,7 +618,13 @@ class Training:
 
             self.train_models(model_index)
                 
-            self.save_model_data()            
+            self.save_model_data()  
+            
+            if model_index == 0:
+                self.execution_data["time"] += [(time.time() - start_time) / 60]
+            else:
+                self.execution_data["time"][self.epoch] += (time.time() - start_time) / 60
+                self.execution_data["time"][self.epoch] /= 2
 
         if self.loss_gan != -1.0:
             self.networks_data.gan_scheduler.step()
@@ -624,6 +639,10 @@ class Training:
         if os.path.exists("{}/performances.npy".format(self.path_to_save)):    
             self.perfs = np.load("{}/performances.npy".format(self.path_to_save), allow_pickle=True)
             self.perfs = self.perfs.item()
+            
+        if os.path.exists("{}/execution_data.npy".format(self.path_to_save)):    
+            self.execution_data = np.load("{}/execution_data.npy".format(self.path_to_save), allow_pickle=True)
+            self.execution_data = self.execution_data.item()
                 
         for model_index in range(self.k_fold):
             self.epoch = 0
@@ -632,6 +651,10 @@ class Training:
             self.load_models_if_present()
             
             self.train_model_with_index(model_index)
+            
+        self.execution_data["memory"] = torch.cuda.max_memory_allocated(0)
+        
+        np.save("{}/execution_data.npy".format(self.path_to_save), self.execution_data)
 
     def save_to_torch_full_model(self):
         """
