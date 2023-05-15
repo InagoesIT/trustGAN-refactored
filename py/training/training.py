@@ -54,7 +54,7 @@ class Training:
             device_name=None,
             verbose=True,
             seed=42, 
-            k_fold=5,
+            k_fold=7,
             epoch_to_validate=25
     ):
         self.epoch = 0
@@ -516,7 +516,7 @@ class Training:
     def log_perfs(self, model_index):
         dataloaders_and_dataset_types = [(self.data_loaders_train[model_index], "train")]
         epoch = self.epoch
-        if self.epoch % self.epoch_to_validate == 0:
+        if (self.epoch + 1) % self.epoch_to_validate == 0 or self.epoch == 0:
             dataloaders_and_dataset_types.append((self.data_loaders_validation[model_index], "valid"))
                 
         for dataloader, dataset_type in dataloaders_and_dataset_types:
@@ -524,7 +524,7 @@ class Training:
                 loader=dataloader, header_str="{} {}".format(self.epoch, dataset_type)
             )
             if dataset_type == "valid":
-                epoch //= self.epoch_to_validate
+                epoch = (epoch + 1) // self.epoch_to_validate
 
             for metric, metric_name in [(accuracies, "accs"), (losses, "loss")]:
                 for network_task, value in metric.items():
