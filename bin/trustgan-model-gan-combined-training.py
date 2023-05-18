@@ -33,25 +33,24 @@ import click
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-from py.training.training_params import TrainingParams
-from py.utils.create_gif import create_gif
-from py.utils.plot_perfs import plot_perfs
-from py.training.training import Training
+from py.training.training_data import TrainingParameters
+from py.utils.plotter import Plotter
+from py.training.training_pipeline import TrainingPipeline
 
 
 @click.command(
     context_settings={"show_default": True, "help_option_names": ["-h", "--help"]}
 )
-@click.option("--path2save", help="Path where to save results", required=True)
+@click.option("--path_to_save", help="Path where to save results", required=True)
 @click.option(
-    "--path2dataset", help="Path to the dataset to run training on", required=True
+    "--path_to_dataset", help="Path to the dataset_handler to run training on", required=True
 )
 @click.option(
-    "--nr-classes", help="Number of classes in the dataset", required=True, type=int
+    "--nr-classes", help="Number of classes in the dataset_handler", required=True, type=int
 )
 @click.option("--nr-epochs", default=1, help="Number of epochs")
 @click.option(
-    "--nr-step-net-gan",
+    "--nr-step-target_model-gan",
     default=1,
     help="Number of steps to train the Model against the GAN per Model step",
 )
@@ -59,16 +58,16 @@ from py.training.training import Training
     "--nr-step-gan", default=1, help="Number of steps to train the GAN per Model step"
 )
 @click.option(
-    "--nr-step-net-alone",
+    "--nr-step-target_model-alone",
     default=0,
     help="Number of steps for the model to be alone, without GAN attacks",
 )
 @click.option(
-    "--proportion-net-alone",
+    "--proportion-target_model-alone",
     default=0.0,
     help="Proportion of the epochs where only the model is learning",
 )
-@click.option("--path-to-load-net", default=None, help="Path to load a model from")
+@click.option("--path-to-load-target_model", default=None, help="Path to load a model from")
 @click.option("--path-to-load-gan", default=None, help="Path to load a GAN from")
 @click.option(
     "--produce-plots",
@@ -79,7 +78,7 @@ from py.training.training import Training
 @click.option("--device", default="cuda:0", help="Device to run training on")
 @click.option("--verbose", default=True)
 @click.option(
-    "--path2net",
+    "--target_model",
     default=None,
     type=str,
     help="Path where to load a network for the given task",
@@ -109,14 +108,13 @@ def main(
         network_name,
 ):
     if produce_plots:
-        plot_perfs(path2save)
-        create_gif(path2save, "example-image-best-step-*.png")
-        create_gif(path2save, "example-image-not-best-step-*.png")
-        create_gif(path2save, "example-true-image-min-step-*.png")
-        create_gif(path2save, "example-true-image-max-step-*.png")
+        plotter = Plotter(path2save)
+        plotter.plot_performances()
+        plotter.create_gif("example-image-is_best-step-*.png")
+        plotter.create_gif("example-image-not-is_best-step-*.png")
+        plotter.create_gif("example-true-image-min-step-*.png")
+        plotter.create_gif("example-true-image-max-step-*.png")
     else:
-
-        #
         if not os.path.isdir(path2save):
             os.mkdir(path2save)
         cfgs = open("{}/configs.txt".format(path2save), "w")
@@ -124,22 +122,22 @@ def main(
         cfgs.close()
 
         #
-        training_params = TrainingParams(batch_size=batch_size,
-                                         nr_epochs=nr_epochs,
-                                         nr_step_net_gan=nr_step_net_gan,
-                                         nr_step_gan=nr_step_gan,
-                                         nr_step_net_alone=nr_step_net_alone,
-                                         proportion_net_alone=proportion_net_alone,
-                                         network_name=network_name,
-                                         nr_classes=nr_classes
-                                         )
-        training_pipeline = Training(
+        training_params = TrainingParameters(batch_size=batch_size,
+                                             nr_epochs=nr_epochs,
+                                             nr_step_net_gan=nr_step_net_gan,
+                                             nr_step_gan=nr_step_gan,
+                                             nr_step_net_alone=nr_step_net_alone,
+                                             proportion_net_alone=proportion_net_alone,
+                                             network_name=network_name,
+                                             nr_classes=nr_classes
+                                             )
+        training_pipeline = TrainingPipeline(
             training_params=training_params,
             path_to_save=path2save,
-            path2dataset=path2dataset,
-            path_to_load_net=path_to_load_net,
+            path_to_dataset=path2dataset,
+            path_to_load_target_model=path_to_load_net,
             path_to_load_gan=path_to_load_gan,
-            path2net=path2net,
+            target_model=path2net,
             device_name=device,
             verbose=True,
         )

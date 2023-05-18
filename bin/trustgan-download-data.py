@@ -36,12 +36,12 @@ from py.dataset.dataset_saver import DatasetSaver
     context_settings={"show_default": True, "help_option_names": ["-h", "--help"]}
 )
 @click.option(
-    "--dataset",
+    "--dataset_handler",
     required=True,
-    help="Name of the dataset",
+    help="Name of the dataset_handler",
 )
 @click.option(
-    "--path2save",
+    "--path_to_save",
     required=True,
     help="Path where to save results.",
 )

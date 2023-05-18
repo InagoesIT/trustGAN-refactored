@@ -56,13 +56,13 @@ setuptools.setup(
     version=VERSION,
     install_requires=REQUIRED,
     packages=[
-        "py.dataset",
+        "py.dataset_handler",
         "py.training",
         "py.utils",
         "py.training.networks"
     ],
     package_dir={
-        "py.dataset": "py/dataset",
+        "py.dataset_handler": "py/dataset_handler",
         "py.training": "py/training",
         "py.utils": "py/utils",
         "py.training.networks": "py/training/networks",

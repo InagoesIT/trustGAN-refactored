@@ -37,7 +37,7 @@ import torchvision.transforms
 
 class DatasetSaver:
     def __init__(self, dataset, path2save, splits=None, seed=42, split_data=False):
-        # how will the dataset be split -> training, validation, testing
+        # how will the dataset_handler be split -> training, validation, testing
         self.splits = splits
         self.dataset = dataset
         self.path2save = path2save
@@ -60,7 +60,8 @@ class DatasetSaver:
             self.splits[-1] = 1.0 - np.sum(self.splits[:-1])
 
         self.splits = np.array(self.splits)
-        
+
+    @staticmethod
     def set_seeds(seed):
         np.random.seed(seed)
         torch.manual_seed(seed)   
@@ -75,7 +76,7 @@ class DatasetSaver:
         for k, v in data.items():
             nr_unique_elements = torch.unique(v["y"]).size()
             print(
-                f"INFO: {k} has x shape = {v['x'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
+                f"INFO: {k} has images shape = {v['images'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
             )
 
         return data
@@ -90,13 +91,13 @@ class DatasetSaver:
         for k, v in data.items():
             nr_unique_elements = torch.unique(v["y"]).size()
             print(
-                f"INFO: {k} has x shape = {v['x'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
+                f"INFO: {k} has images shape = {v['images'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
             )
 
         return data
     
     def get_torch_dataset_no_split(self):
-        """ Returns data with trainvalid and test keys"""
+        """ Returns state with trainvalid and test keys"""
 
         data = self.get_train_and_validation_no_split()
 
@@ -104,7 +105,7 @@ class DatasetSaver:
         test_set = self.get_torch_dataset_with_type(is_train=False)
         data["test"] = test_set
 
-        # Calculate the dataset train-test split
+        # Calculate the dataset_handler train-test split
         self.splits = np.array(
             [data[el]["y"].shape[0] for el in ["trainvalidation", "test"]], dtype=float
         )
@@ -114,7 +115,7 @@ class DatasetSaver:
         return data
 
     def get_torch_dataset(self):
-        """ Returns data with train, valid and test keys"""
+        """ Returns state with train, valid and test keys"""
 
         data = self.get_train_and_validation()
 
@@ -142,7 +143,7 @@ class DatasetSaver:
         np.random.shuffle(random_indexes)
 
         data["trainvalidation"] = {
-            "x": train_valid_set["x"][random_indexes],
+            "images": train_valid_set["images"][random_indexes],
             "y": train_valid_set["y"][random_indexes],
         }
 
@@ -156,17 +157,17 @@ class DatasetSaver:
         nr_samples = train_valid_set["y"].shape[0]
         random_indexes = np.arange(nr_samples)
         np.random.shuffle(random_indexes)
-        train_valid_set["x"] = train_valid_set["x"][random_indexes]
+        train_valid_set["images"] = train_valid_set["images"][random_indexes]
         train_valid_set["y"] = train_valid_set["y"][random_indexes]
 
         splits = self.splits[:2] / self.splits[:2].sum()
         nr_split_train = int(splits[0] * nr_samples)
         data["train"] = {
-            "x": train_valid_set["x"][:nr_split_train],
+            "images": train_valid_set["images"][:nr_split_train],
             "y": train_valid_set["y"][:nr_split_train],
         }
         data["validation"] = {
-            "x": train_valid_set["x"][nr_split_train:],
+            "images": train_valid_set["images"][nr_split_train:],
             "y": train_valid_set["y"][nr_split_train:],
         }
 
@@ -195,16 +196,16 @@ class DatasetSaver:
             x, y = self.get_x_y_from_data(data)
             x, y = self.channel_manipulations(x, y)
 
-        return {"x": x, "y": y}
+        return {"images": x, "y": y}
 
     def get_x_y_from_data(self, data):
         # doesn't need processing
-        if hasattr(data[0], "data") and hasattr(data[0], "targets"):
-            x, y = data[0].data, data[0].targets
+        if hasattr(data[0], "state") and hasattr(data[0], "targets"):
+            x, y = data[0].state, data[0].targets
         else:
             x, y = self.get_data_from_loaders(data[0])
 
-        # make x, y to be tensors
+        # make images, y to be tensors
         if "numpy" in str(type(x)):
             x = torch.from_numpy(x)
         if "numpy" in str(type(y)):
@@ -274,7 +275,7 @@ class DatasetSaver:
         # add a dimension m (n, m, n)
         if self.dataset in ["MNIST", "FashionMNIST"]:
             x = torch.unsqueeze(x, 1)
-        # transposing a tensor x with shape (batch_size, height, width, channels)
+        # transposing a tensor images with shape (batch_size, height, width, channels)
         # to (batch_size, channels, height, width)
         elif self.dataset in ["CIFAR10"]:
             x = torch.cat([x[..., i][:, None, ...] for i in range(x.shape[-1])], dim=1)

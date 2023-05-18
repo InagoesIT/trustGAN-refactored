@@ -23,14 +23,14 @@ We will work within `./xps/`:
 You can download in-distribution (ID) sample datasets within `data/`:
 
 ```bash
-python ../bin/trustgan-download-data.py --path2save "data/" --dataset "MNIST"
+python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handler "MNIST"
 ```
 
 You can download out-of-distribution (OOD) sample datasets within `data/`:
 
 ```bash
-python ../bin/trustgan-download-data.py --path2save "data/" --dataset "FashionMNIST"
-python ../bin/trustgan-download-data.py --path2save "data/" --dataset "CIFAR10"
+python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handler "FashionMNIST"
+python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handler "CIFAR10"
 ```
 
 ### Train a model
@@ -39,11 +39,11 @@ We will now train two models, one without TrustGAN and another with it,
 with a selected device `<device>`:
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2dataset "data/MNIST" --nr-classes 10 --nr-epochs 3 --batch-size 256 --proportion-net-alone 1 --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training_pipeline.py --path_to_save "../"  --path_to_dataset "data/MNIST" --nr-classes 10 --nr-epochs 3 --batch-size 256 --proportion-target_model-alone 1 --device "cuda:0"
 ```
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2dataset "data/MNIST" --nr-classes 10 --nr-epochs 2 --batch-size 256 --nr-step-net-alone 1 --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training_pipeline.py --path_to_save "../"  --path_to_dataset "data/MNIST" --nr-classes 10 --nr-epochs 2 --batch-size 256 --nr-step-target_model-alone 1 --device "cuda:0"
 ```
 
 ## Test
@@ -51,17 +51,17 @@ python ../bin/trustgan-model-gan-combined-training.py --path2save "../"  --path2
 You can get summary plots and gifs with:
 
 ```bash
-python3 ../bin/trustgan-model-gan-combined-training.py \
-    --path2save "mnist-wo-gan/" \
-    --path2dataset "data/MNIST" \
+python3 ../bin/trustgan-model-gan-combined-training_pipeline.py \
+    --path_to_save "mnist-wo-gan/" \
+    --path_to_dataset "data/MNIST" \
     --nb-classes 10 \
     --produce-plots
 ```
 
 ```bash
-python3 ../bin/trustgan-model-gan-combined-training.py \
-    --path2save "mnist-wi-gan/" \
-    --path2dataset "data/MNIST" \
+python3 ../bin/trustgan-model-gan-combined-training_pipeline.py \
+    --path_to_save "mnist-wi-gan/" \
+    --path_to_dataset "data/MNIST" \
     --nb-classes 10 \
     --produce-plots
 ```

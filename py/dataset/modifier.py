@@ -43,12 +43,12 @@ class Modifier:
         x = 2.0 * x - 1.0
         return x
 
-    def __call__(self, input):
-        x = input[0]
+    def __call__(self, sample):
+        x = sample[0]
         if len(x) == 1:
             y = None
         else:
-            y = input[1]
+            y = sample[1]
 
         x = self.convert_to_nr_channels(x)
         x = self.min_max_norm(x)
