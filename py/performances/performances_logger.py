@@ -21,7 +21,7 @@ class PerformancesLogger:
             # Net on real state
             outputs = self.training.models_data.target_model(inputs)
             loss["target_model"] += (
-                self.training.models_data.net_loss(outputs, labels, reduction="sum").detach().cpu().numpy()
+                self.training.models_data.target_model_loss_type(outputs, labels, reduction="sum").detach().cpu().numpy()
             )
             _, hard_predicted = torch.max(outputs, 1)
             _, hard_labels = torch.max(labels, 1)
@@ -40,13 +40,13 @@ class PerformancesLogger:
             net_outputs = self.training.models_data.target_model(gan_outputs)
 
             loss["net_on_gan"] += (
-                self.training.models_data.net_loss(net_outputs, rand_labels, reduction="sum")
+                self.training.models_data.target_model_loss_type(net_outputs, rand_labels, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()
             )
             loss["gan"] += (
-                self.training.models_data.gan_loss(rand_inputs, gan_outputs, net_outputs, reduction="sum")
+                self.training.models_data.gan_loss_type(rand_inputs, gan_outputs, net_outputs, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()
@@ -57,8 +57,8 @@ class PerformancesLogger:
         for k in loss.keys():
             loss[k] = loss[k] / loader.dataset.nr_total_labels
 
-        self.training.models_data.target_model.train()
-        self.training.models_data.gan.train()
+        self.training.models_data.target_model.run()
+        self.training.models_data.gan.run()
 
         res_str = header_str + ": Losses: "
         for k, v in loss.items():
@@ -76,7 +76,7 @@ class PerformancesLogger:
         return (epoch + 1) % validation_at == 0 or epoch == 0
 
     def calculate_performances(self, model_index):
-        dataloaders_and_dataset_types = [(self.training.data_loaders.train[model_index], "train")]
+        dataloaders_and_dataset_types = [(self.training.data_loaders.run[model_index], "run")]
         epoch = self.training.training.state.epoch
         if PerformancesLogger.is_validation_epoch(
                 epoch=epoch, validation_at=self.training.parameters.validation_interval):
@@ -105,15 +105,15 @@ class PerformancesLogger:
 
     def run(self, model_index):
         if model_index == 0:
-            self.training.state.perfs["train"]["is_best-gan-loss"] += [self.training.state.best_loss]
+            self.training.state.perfs["run"]["is_best-gan-loss"] += [self.training.state.best_loss]
             self.training.state.perfs["valid"]["is_best-gan-loss"] += [-1.0]
         else:
-            self.training.state.perfs["train"]["is_best-gan-loss"][self.training.state.epoch] += self.training.state.best_loss
-            self.training.state.perfs["train"]["is_best-gan-loss"][self.training.state.epoch] /= 2
+            self.training.state.perfs["run"]["is_best-gan-loss"][self.training.state.epoch] += self.training.state.best_loss
+            self.training.state.perfs["run"]["is_best-gan-loss"][self.training.state.epoch] /= 2
             self.training.state.perfs["valid"]["is_best-gan-loss"][self.training.state.epoch] += -1.0
             self.training.state.perfs["valid"]["is_best-gan-loss"][self.training.state.epoch] /= 2
 
         self.calculate_performances(model_index)
-        self.training.plotter.plot_best_and_worst_examples(loader=self.training.data_loaders.train[model_index])
-        self.training.saver.save_epoch(best="not-is_best", loader=self.training.data_loaders.train[model_index])
+        self.training.plotter.plot_best_and_worst_examples(loader=self.training.data_loaders.run[model_index])
+        self.training.saver.save_epoch(best="not-is_best", loader=self.training.data_loaders.run[model_index])
         np.save("{}/performances.npy".format(self.training.paths.root_folder), self.training.state.perfs)

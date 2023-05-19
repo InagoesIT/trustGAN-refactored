@@ -3,7 +3,7 @@ from py.dataset.data_loader import DataLoader
 from py.dataset.dataset_handler import DatasetHandler
 
 
-class TrainingDataLoaders:
+class DataLoaders:
     def __init__(self, path_to_dataset, training_parameters):
         self.path_to_dataset = path_to_dataset
         self.training_parameters = training_parameters
@@ -26,7 +26,7 @@ class TrainingDataLoaders:
         fold_size = int(total_size / self.training_parameters.k_fold)
 
         for fold_index in range(self.training_parameters.k_fold):
-            train_set, validation_set = TrainingDataLoaders.get_train_and_validation_dataset(
+            train_set, validation_set = DataLoaders.get_train_and_validation_dataset(
                 dataset_handler, fold_index, fold_size, total_size)
 
             self.train.append(

@@ -1,7 +1,7 @@
 import os
 
 
-class TrainingPaths:
+class Paths:
     def __init__(self,
                  root_folder,
                  dataset,

@@ -52,10 +52,10 @@ from py.training.training_pipeline import TrainingPipeline
 @click.option(
     "--nr-step-target_model-gan",
     default=1,
-    help="Number of steps to train the Model against the GAN per Model step",
+    help="Number of steps to run the Model against the GAN per Model step",
 )
 @click.option(
-    "--nr-step-gan", default=1, help="Number of steps to train the GAN per Model step"
+    "--nr-step-gan", default=1, help="Number of steps to run the GAN per Model step"
 )
 @click.option(
     "--nr-step-target_model-alone",
@@ -84,7 +84,7 @@ from py.training.training_pipeline import TrainingPipeline
     help="Path where to load a network for the given task",
 )
 @click.option(
-    "--network_name",
+    "--target_model_network_type",
     default="Net",
     type=str,
     help="Network name",
@@ -141,7 +141,7 @@ def main(
             device_name=device,
             verbose=True,
         )
-        training_pipeline.train()
+        training_pipeline.run()
 
 
 if __name__ == "__main__":

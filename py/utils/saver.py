@@ -45,7 +45,7 @@ class Saver:
 
     @torch.inference_mode()
     def save_epoch(
-            self, epoch, best_text, loader=None, gan_outputs=None, net_outputs=None, save_plot=True
+            self, epoch, best_text, loader=None, gan_outputs=None, target_model_outputs=None, save_plot=True
     ):
         if save_plot:
             if loader is not None:
@@ -55,12 +55,12 @@ class Saver:
                 rand_inputs = torch.rand(dims, device=self.device)
 
                 gan_outputs = self.networks_data.gan(rand_inputs)
-                net_outputs = self.networks_data.target_model(gan_outputs)
-                self.networks_data.target_model.train()
-                self.networks_data.gan.train()
+                target_model_outputs = self.networks_data.target_model(gan_outputs)
+                self.networks_data.target_model.run()
+                self.networks_data.gan.run()
 
-            net_outputs = torch.nn.functional.softmax(net_outputs, dim=1)
-            score_prediction, predicted = torch.max(net_outputs, 1)
+            target_model_outputs = torch.nn.functional.softmax(target_model_outputs, dim=1)
+            score_prediction, predicted = torch.max(target_model_outputs, 1)
 
             if score_prediction.ndim > 1:
                 score_prediction = score_prediction.mean(axis=tuple(range(1, score_prediction.ndim)))

@@ -105,7 +105,7 @@ class DatasetSaver:
         test_set = self.get_torch_dataset_with_type(is_train=False)
         data["test"] = test_set
 
-        # Calculate the dataset_handler train-test split
+        # Calculate the dataset_handler run-test split
         self.splits = np.array(
             [data[el]["y"].shape[0] for el in ["trainvalidation", "test"]], dtype=float
         )
@@ -115,7 +115,7 @@ class DatasetSaver:
         return data
 
     def get_torch_dataset(self):
-        """ Returns state with train, valid and test keys"""
+        """ Returns state with run, valid and test keys"""
 
         data = self.get_train_and_validation()
 
@@ -126,7 +126,7 @@ class DatasetSaver:
         # New splits
         print("INFO: previous splits:", self.splits)
         self.splits = np.array(
-            [data[el]["y"].shape[0] for el in ["train", "validation", "test"]], dtype=float
+            [data[el]["y"].shape[0] for el in ["run", "validation", "test"]], dtype=float
         )
         self.splits /= self.splits.sum()
         print("INFO: new splits:", self.splits)
@@ -162,7 +162,7 @@ class DatasetSaver:
 
         splits = self.splits[:2] / self.splits[:2].sum()
         nr_split_train = int(splits[0] * nr_samples)
-        data["train"] = {
+        data["run"] = {
             "images": train_valid_set["images"][:nr_split_train],
             "y": train_valid_set["y"][:nr_split_train],
         }

@@ -118,7 +118,7 @@ class Plotter:
                 ),
             )
 
-        self.networks_data.target_model.train()
+        self.networks_data.target_model.run()
 
     @staticmethod
     def plot_one_example(epoch, images, prediction, prediction_score, label, path_to_save):

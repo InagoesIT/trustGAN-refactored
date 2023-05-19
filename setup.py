@@ -56,16 +56,22 @@ setuptools.setup(
     version=VERSION,
     install_requires=REQUIRED,
     packages=[
-        "py.dataset_handler",
+        "py.dataset",
+        "py.networks",
+        "py.performances",
+        "py.prediction",
+        "py.training.data",
         "py.training",
-        "py.utils",
-        "py.training.networks"
+        "py.utils"
     ],
     package_dir={
-        "py.dataset_handler": "py/dataset_handler",
+        "py.dataset": "py/dataset",
+        "py.networks": "py/networks",
+        "py.performances": "py/performances",
+        "py.prediction": "py/prediction",
+        "py.training.data": "py/training/data",
         "py.training": "py/training",
-        "py.utils": "py/utils",
-        "py.training.networks": "py/training/networks",
+        "py.utils": "py/utils"
     },
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",

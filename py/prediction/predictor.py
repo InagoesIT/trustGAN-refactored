@@ -41,6 +41,6 @@ class Predictor:
         predictions = np.hstack(predictions)
         score = np.hstack(score)
 
-        self.networks_data.target_model.train()
+        self.networks_data.target_model.run()
 
         return truth, predictions, score

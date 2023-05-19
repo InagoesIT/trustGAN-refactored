@@ -1,7 +1,7 @@
 import torch
 
 
-class TrainingState:
+class State:
     def __init__(self, given_target_model=None, verbose=True, device_name=None, seed=42):
         self.given_target_model = given_target_model
         self.verbose = verbose

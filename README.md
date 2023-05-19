@@ -14,7 +14,7 @@ With python, pip and setuptools installed, you simply need to:
 python -m pip install .
 ```
 
-## Get the data and train a model
+## Get the data and run a model
 
 We will work within `./xps/`:
 
@@ -35,7 +35,7 @@ python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handle
 
 ### Train a model
 
-We will now train two models, one without TrustGAN and another with it,
+We will now run two models, one without TrustGAN and another with it,
 with a selected device `<device>`:
 
 ```bash

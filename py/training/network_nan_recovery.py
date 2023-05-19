@@ -12,7 +12,7 @@ class NetworkNaNRecovery:
         self.modifier = modifier
 
     @torch.inference_mode()
-    def recover_from_nan_net(self):
+    def recover_from_nan_target_model(self):
         """
         Recover from Nan in target_model
         """
@@ -36,15 +36,15 @@ class NetworkNaNRecovery:
                 idx -= 1
             print(f"WARNING: Recover a proper state there: {nets[idx + 1]}")
 
-            self.networks_data.recovered_from_nan_net += 1
-            print(f"WARNING: Recovered from NaN {self.networks_data.recovered_from_nan_net} times\n")
-            self.networks_data.net_optim = torch.optim.AdamW(
+            self.networks_data.recovered_from_nan_target_model += 1
+            print(f"WARNING: Recovered from NaN {self.networks_data.recovered_from_nan_target_model} times\n")
+            self.networks_data.target_model_optimizer = torch.optim.AdamW(
                 self.networks_data.target_model.parameters(),
                 weight_decay=0.05,
-                lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_net,
+                lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_target_model,
             )
 
-        self.networks_data.target_model.train()
+        self.networks_data.target_model.run()
 
     @torch.inference_mode()
     def recover_from_nan_gan(self):
@@ -74,17 +74,17 @@ class NetworkNaNRecovery:
 
             self.networks_data.recovered_from_nan_gan += 1
             print(f"WARNING: Recovered from NaN {self.networks_data.recovered_from_nan_gan} times\n")
-            self.networks_data.gan_optim = torch.optim.AdamW(
+            self.networks_data.gan_optimizer = torch.optim.AdamW(
                 self.networks_data.gan.parameters(),
                 weight_decay=0.05,
                 lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_gan,
             )
             self.networks_data.gan_scheduler = torch.optim.lr_scheduler.CyclicLR(
-                self.networks_data.gan_optim,
+                self.networks_data.gan_optimizer,
                 base_lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_gan,
                 max_lr=5.0e-3 / 2 ** self.networks_data.recovered_from_nan_gan,
                 step_size_up=50,
                 cycle_momentum=False,
             )
 
-        self.networks_data.gan.train()
+        self.networks_data.gan.run()
