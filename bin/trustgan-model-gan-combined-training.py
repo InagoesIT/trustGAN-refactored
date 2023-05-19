@@ -125,7 +125,7 @@ def main(
         proportion_target_model_alone,
         path_to_load_target_model,
         path_to_load_gan,
-        is_plots_request,
+        request_plots,
         batch_size,
         device,
         verbose,
@@ -134,7 +134,7 @@ def main(
         validation_interval,
         k_fold
 ):
-    if is_plots_request:
+    if request_plots:
         produce_plots(root_folder, total_epochs, validation_interval)
         return
 
