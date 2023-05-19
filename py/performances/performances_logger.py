@@ -8,8 +8,8 @@ class PerformancesLogger:
 
     @torch.inference_mode()
     def get_performances(self, loader, header_str=""):
-        self.training.models_data.target_model.eval()
-        self.training.models_data.gan.eval()
+        self.training.networks_data.target_model.eval()
+        self.training.networks_data.gan.eval()
 
         accuracies = {"target_model": 0.0, "net_on_gan": 0.0, "gan": 0.0}
         loss = {"target_model": 0.0, "net_on_gan": 0.0, "gan": 0.0}
@@ -19,9 +19,9 @@ class PerformancesLogger:
             inputs, labels = self.training.modifier((inputs, labels))
 
             # Net on real state
-            outputs = self.training.models_data.target_model(inputs)
+            outputs = self.training.networks_data.target_model(inputs)
             loss["target_model"] += (
-                self.training.models_data.target_model_loss_type(outputs, labels, reduction="sum").detach().cpu().numpy()
+                self.training.networks_data.target_model_loss_type(outputs, labels, reduction="sum").detach().cpu().numpy()
             )
             _, hard_predicted = torch.max(outputs, 1)
             _, hard_labels = torch.max(labels, 1)
@@ -32,21 +32,21 @@ class PerformancesLogger:
             # Net on Gan generated images and gan loss
             rand_inputs = torch.rand(inputs.shape, device=self.training.state.device)
             rand_labels = (
-                    1.0 / self.training.parameters.nr_classes *
+                    1.0 / self.training.hyperparameters.nr_classes *
                     torch.ones(labels.shape, device=self.training.state.device)
             )
 
-            gan_outputs = self.training.models_data.gan(rand_inputs)
-            net_outputs = self.training.models_data.target_model(gan_outputs)
+            gan_outputs = self.training.networks_data.gan(rand_inputs)
+            net_outputs = self.training.networks_data.target_model(gan_outputs)
 
             loss["net_on_gan"] += (
-                self.training.models_data.target_model_loss_type(net_outputs, rand_labels, reduction="sum")
+                self.training.networks_data.target_model_loss_type(net_outputs, rand_labels, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()
             )
             loss["gan"] += (
-                self.training.models_data.gan_loss_type(rand_inputs, gan_outputs, net_outputs, reduction="sum")
+                self.training.networks_data.gan_loss_type(rand_inputs, gan_outputs, net_outputs, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()
@@ -57,8 +57,8 @@ class PerformancesLogger:
         for k in loss.keys():
             loss[k] = loss[k] / loader.dataset.nr_total_labels
 
-        self.training.models_data.target_model.run()
-        self.training.models_data.gan.run()
+        self.training.networks_data.target_model.run()
+        self.training.networks_data.gan.run()
 
         res_str = header_str + ": Losses: "
         for k, v in loss.items():
@@ -79,7 +79,7 @@ class PerformancesLogger:
         dataloaders_and_dataset_types = [(self.training.data_loaders.run[model_index], "run")]
         epoch = self.training.training.state.epoch
         if PerformancesLogger.is_validation_epoch(
-                epoch=epoch, validation_at=self.training.parameters.validation_interval):
+                epoch=epoch, validation_at=self.training.hyperparameters.validation_interval):
             dataloaders_and_dataset_types.append((self.training.data_loaders.validation[model_index], "valid"))
 
         for dataloader, dataset_type in dataloaders_and_dataset_types:

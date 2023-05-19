@@ -10,32 +10,28 @@ package = __import__("py.training.networks")
 
 
 class NetworksData:
-    def __init__(self, given_target_model, nr_dims, training_params):
+    def __init__(self, nr_dims, training_hyperparameters, given_target_model=None):
         if given_target_model is not None:
             self.target_model = given_target_model
         else:
-            # find all the modules in the package
             for importer, modname, is_pkg in pkgutil.walk_packages(package.__path__):
-                # import the module
                 module = importer.find_module(modname).load_module(modname)
 
-                # check if the module has the class
-                if hasattr(module, training_params.target_model_network_type):
-                    # get the class from the module
-                    network = getattr(module, training_params.target_model_network_type)
+                if hasattr(module, training_hyperparameters.target_model_network_type):
+                    network = getattr(module, training_hyperparameters.target_model_network_type)
                     self.target_model = network(
-                        nr_classes=training_params.nr_classes,
-                        nr_channels=training_params.nr_channels,
+                        nr_classes=training_hyperparameters.nr_classes,
+                        nr_channels=training_hyperparameters.nr_channels,
                         is_batch_norm=False,
                         is_weight_norm=True,
                         dim=f"{nr_dims}d",
                     )
                     break
         self.target_model_loss_type = get_softmax_cross_entropy_loss
-        self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
+        self.target_model_optimizer = torch.optim.AdamW(self.target_model.hyperparameters(), weight_decay=0.05)
 
         self.gan = Gan(
-            nr_channels=training_params.nr_channels,
+            nr_channels=training_hyperparameters.nr_channels,
             is_batch_norm=True,
             is_weight_norm=False,
             dim=f"{nr_dims}d",

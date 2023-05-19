@@ -39,7 +39,7 @@ class NetworkNaNRecovery:
             self.networks_data.recovered_from_nan_target_model += 1
             print(f"WARNING: Recovered from NaN {self.networks_data.recovered_from_nan_target_model} times\n")
             self.networks_data.target_model_optimizer = torch.optim.AdamW(
-                self.networks_data.target_model.parameters(),
+                self.networks_data.target_model.hyperparameters(),
                 weight_decay=0.05,
                 lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_target_model,
             )
@@ -75,7 +75,7 @@ class NetworkNaNRecovery:
             self.networks_data.recovered_from_nan_gan += 1
             print(f"WARNING: Recovered from NaN {self.networks_data.recovered_from_nan_gan} times\n")
             self.networks_data.gan_optimizer = torch.optim.AdamW(
-                self.networks_data.gan.parameters(),
+                self.networks_data.gan.hyperparameters(),
                 weight_decay=0.05,
                 lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_gan,
             )
