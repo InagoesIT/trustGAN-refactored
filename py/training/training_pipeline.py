@@ -34,12 +34,12 @@ import time
 
 from py.dataset.modifier import Modifier
 from py.performances.performances_logger import PerformancesLogger
-from py.training.training_data.networks_data import NetworksData
-from py.training.training_data.state import State
-from py.training.training_data.data_loaders import DataLoaders
-from py.training.training_data.hyperparameters import Hyperparameters
+from py.training.data.networks_data import NetworksData
+from py.training.data.state import State
+from py.training.data.data_loaders import DataLoaders
+from py.training.data.hyperparameters import Hyperparameters
 from py.training.network_nan_recovery import NetworkNaNRecovery
-from py.training.training_data.paths import Paths
+from py.training.data.paths import Paths
 from py.utils.saver import Saver
 
 

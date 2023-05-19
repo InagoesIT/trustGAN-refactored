@@ -31,11 +31,11 @@
 import os
 import click
 
-from py.training.training_data.paths import Paths
-from py.training.training_data.state import State
+from py.training.data.paths import Paths
+from py.training.data.state import State
 from py.utils.graphs_plotter import GraphsPlotter
 from py.utils.images_plotter import ImagesPlotter
-from py.training.training_data.hyperparameters import Hyperparameters
+from py.training.data.hyperparameters import Hyperparameters
 from py.training.training_pipeline import TrainingPipeline
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -94,13 +94,13 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 )
 @click.option(
     "--validation_interval",
-    default=25,
+    default=1,
     type=int,
     help="At which interval to run k-fold validation",
 )
 @click.option(
     "--k_fold",
-    default=5,
+    default=2,
     type=int,
     help="The k for performing k-fold validation",
 )
