@@ -50,7 +50,7 @@ def trustgan_download_data(
     path_to_root_folder,
 ):
 
-    DatasetSaver(dataset=dataset, path2save=path_to_root_folder)
+    DatasetSaver(dataset=dataset, path_to_root_folder=path_to_root_folder)
 
 
 if __name__ == "__main__":
