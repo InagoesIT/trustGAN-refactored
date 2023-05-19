@@ -36,11 +36,11 @@ import torchvision.transforms
 
 
 class DatasetSaver:
-    def __init__(self, dataset, path2save, splits=None, seed=42, split_data=False):
+    def __init__(self, dataset, path_to_root_folder, splits=None, seed=42, split_data=False):
         # how will the dataset_handler be split -> training, validation, testing
         self.splits = splits
         self.dataset = dataset
-        self.path2save = path2save
+        self.path_to_root_folder = path_to_root_folder
         DatasetSaver.set_seeds(seed)
         
         if split_data:
@@ -284,10 +284,10 @@ class DatasetSaver:
 
     def save_data(self, data):
         for k, v in data.items():
-            os.makedirs(os.path.join(self.path2save, self.dataset), exist_ok=True)
+            os.makedirs(os.path.join(self.path_to_root_folder, self.dataset), exist_ok=True)
             for n_data, a_data in v.items():
                 tmp_path2save = os.path.join(
-                    self.path2save, self.dataset, f"{n_data}_{k}.pt"
+                    self.path_to_root_folder, self.dataset, f"{n_data}_{k}.pt"
                 )
                 torch.save(a_data, tmp_path2save)
 

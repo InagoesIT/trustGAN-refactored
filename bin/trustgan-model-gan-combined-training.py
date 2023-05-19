@@ -44,7 +44,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 @click.command(
     context_settings={"show_default": True, "help_option_names": ["_h", "--help"]}
 )
-@click.option("--path_to_save", help="Path where to save results", required=True)
+@click.option("--path_to_root_folder", help="Path where to save results", required=True)
 @click.option(
     "--path_to_dataset", help="Path to the dataset_handler to run training on", required=True
 )
@@ -115,7 +115,7 @@ def produce_plots(root_folder, total_epochs, validation_interval):
 
 
 def main(
-        root_folder,
+        path_to_root_folder,
         path_to_dataset,
         nr_classes,
         total_epochs,
@@ -135,7 +135,7 @@ def main(
         k_fold
 ):
     if request_plots:
-        produce_plots(root_folder, total_epochs, validation_interval)
+        produce_plots(path_to_root_folder, total_epochs, validation_interval)
         return
 
     hyperparameters = Hyperparameters(
@@ -150,7 +150,7 @@ def main(
         k_fold=k_fold,
         validation_interval=validation_interval
     )
-    paths = Paths(dataset=path_to_dataset, root_folder=root_folder, load_target_model=path_to_load_target_model,
+    paths = Paths(dataset=path_to_dataset, root_folder=path_to_root_folder, load_target_model=path_to_load_target_model,
                   load_gan=path_to_load_gan)
     state = State(given_target_model=given_target_model, verbose=verbose, device_name=device)
 

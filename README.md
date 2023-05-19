@@ -23,14 +23,14 @@ We will work within `./xps/`:
 You can download in-distribution (ID) sample datasets within `data/`:
 
 ```bash
-python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handler "MNIST"
+python ../bin/trustgan-download-state.py --path_to_root_folder "data/" --dataset "MNIST"
 ```
 
 You can download out-of-distribution (OOD) sample datasets within `data/`:
 
 ```bash
-python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handler "FashionMNIST"
-python ../bin/trustgan-download-state.py --path_to_save "data/" --dataset_handler "CIFAR10"
+python ../bin/trustgan-download-state.py --path_to_root_folder "data/" --dataset "FashionMNIST"
+python ../bin/trustgan-download-state.py --path_to_root_folder "data/" --dataset "CIFAR10"
 ```
 
 ### Train a model
@@ -39,11 +39,11 @@ We will now run two models, one without TrustGAN and another with it,
 with a selected device `<device>`:
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training_pipeline.py --root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 3 --batch_size 512 --proportion_target_model_alone 1 --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training_pipeline.py --path_to_root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 3 --batch_size 512 --proportion_target_model_alone 1 --device "cuda:0"
 ```
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training_pipeline.py --root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 3 --batch_size 512 --nr_steps_target_model-alone 1 --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training_pipeline.py --path_to_root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 3 --batch_size 512 --nr_steps_target_model-alone 1 --device "cuda:0"
 ```
 
 ## Test
@@ -51,7 +51,7 @@ python ../bin/trustgan-model-gan-combined-training_pipeline.py --root_folder "..
 You can get summary plots and gifs with:
 
 ```bash
-python3 ../bin/trustgan-model-gan-combined-training_pipeline.py --root_folder "mnist-wi-gan/" --path_to_dataset "data/MNIST" --nr-classes 10 --request-plots
+python3 ../bin/trustgan-model-gan-combined-training_pipeline.py --path_to_root_folder "mnist-wi-gan/" --path_to_dataset "data/MNIST" --nr-classes 10 --request-plots
 ```
 
 ## Contributing

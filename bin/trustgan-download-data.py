@@ -36,21 +36,21 @@ from py.dataset.dataset_saver import DatasetSaver
     context_settings={"show_default": True, "help_option_names": ["-h", "--help"]}
 )
 @click.option(
-    "--dataset_handler",
+    "--dataset",
     required=True,
-    help="Name of the dataset_handler",
+    help="Name of the dataset",
 )
 @click.option(
-    "--path_to_save",
+    "--path_to_root_folder",
     required=True,
     help="Path where to save results.",
 )
 def trustgan_download_data(
     dataset,
-    path2save,
+    path_to_root_folder,
 ):
 
-    DatasetSaver(dataset=dataset, path2save=path2save)
+    DatasetSaver(dataset=dataset, path2save=path_to_root_folder)
 
 
 if __name__ == "__main__":

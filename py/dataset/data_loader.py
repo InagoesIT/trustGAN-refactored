@@ -4,9 +4,9 @@ import os
 
 class DataLoader:
     @staticmethod
-    def get_processed_input_and_labels(path2dataset, nr_classes, dataset_type):
-        x = torch.load(os.path.join(path2dataset, f"x_{dataset_type}.pt"))
-        y = torch.load(os.path.join(path2dataset, f"y_{dataset_type}.pt"))
+    def get_processed_input_and_labels(path_to_dataset, nr_classes, dataset_type):
+        x = torch.load(os.path.join(path_to_dataset, f"x_{dataset_type}.pt"))
+        y = torch.load(os.path.join(path_to_dataset, f"y_{dataset_type}.pt"))
         x = x.to(torch.float)
         y = y.to(torch.long)
 

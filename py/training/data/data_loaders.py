@@ -17,7 +17,7 @@ class DataLoaders:
 
     def set_validation_and_training_data_loaders(self):
         input_items, labels = DataLoader.get_processed_input_and_labels(
-                path2dataset=self.path_to_dataset,
+                path_to_dataset=self.path_to_dataset,
                 nr_classes=self.training_parameters.nr_classes,
                 dataset_type="trainvalidation")
 
@@ -60,7 +60,7 @@ class DataLoaders:
 
     def set_test_data_loader(self):
         input_items, labels = DataLoader.get_processed_input_and_labels(
-            path2dataset=self.path_to_dataset,
+            path_to_dataset=self.path_to_dataset,
             nr_classes=self.training_parameters.nr_classes,
             dataset_type="test")
         dataset = DatasetHandler(input_items, labels)
