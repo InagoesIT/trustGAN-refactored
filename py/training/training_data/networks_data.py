@@ -9,7 +9,7 @@ from py.performances.losses import get_softmax_cross_entropy_loss, get_combined_
 package = __import__("py.training.networks")
 
 
-class ModelsData:
+class NetworksData:
     def __init__(self, given_target_model, nr_dims, training_params):
         if given_target_model is not None:
             self.target_model = given_target_model

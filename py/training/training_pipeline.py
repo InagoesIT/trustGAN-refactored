@@ -34,7 +34,7 @@ import time
 
 from py.dataset.modifier import Modifier
 from py.performances.performances_logger import PerformancesLogger
-from py.training.training_data.models_data import ModelsData
+from py.training.training_data.networks_data import NetworksData
 from py.training.training_data.state import State
 from py.training.training_data.data_loaders import DataLoaders
 from py.training.training_data.parameters import Parameters
@@ -240,7 +240,7 @@ class TrainingPipeline:
 
     def initialize_data_for_new_model(self):
         self.state.epoch = 0
-        self.models_data = ModelsData(self.state.given_target_model, self.nr_dimensions, self.parameters)
+        self.models_data = NetworksData(self.state.given_target_model, self.nr_dimensions, self.parameters)
         self.plotter = Plotter(device=self.state.device, modifier=self.modifier,
                                networks_data=self.models_data, root_folder=self.paths.root_folder,
                                total_epochs=self.parameters.total_epochs)
