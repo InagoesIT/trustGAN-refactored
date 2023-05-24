@@ -10,7 +10,7 @@ class Hyperparameters:
         proportion_target_model_alone=0.0,
         target_model_network_type="Net",
         nr_channels=None,
-        k_fold=3,
+        k_fold=2,
         validation_interval=2
     ):
         self.nr_classes = nr_classes

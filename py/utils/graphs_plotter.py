@@ -7,20 +7,17 @@ from py.performances.performances_logger import PerformancesLogger
 class GraphsPlotter:
     def __init__(self, root_folder, total_epochs, validation_interval):
         self.root_folder = root_folder
-        self.total_epochs = total_epochs
-        self.validation_interval = validation_interval
+        self.performances = performances = np.load("{}/performances.npy".format(self.root_folder), allow_pickle=True)
+        self.performances = performances.item()       
 
-    def plot_performances(self):
-        performances = np.load("{}/performances.npy".format(self.root_folder), allow_pickle=True)
-        performances = performances.item()
-
-        train_metrics = list(performances[list(performances.keys())[0]].keys())
+    def plot_performances(self):    
+        train_metrics = list(self.performances[list(performances.keys())[0]].keys())
 
         for metric in train_metrics:
-            for dataset_type in performances.keys():
-                performances = performances[dataset_type][metric]
+            for dataset_type in self.performances.keys():
+                performances_for_metric = self.performances[dataset_type][metric]
                 epochs = [epoch for epoch in range(self.total_epochs)]
-                if performances.length != self.total_epochs:
+                if len(performances_for_metric) != self.total_epochs:
                     epochs = [epoch for epoch in epochs if
                               PerformancesLogger.is_validation_epoch(epoch=epoch,
                                                                      validation_at=self.validation_interval)]

@@ -93,7 +93,7 @@ class TrainingPipeline:
         loss_target_model = self.networks_data.target_model_loss_type(target_model_outputs, labels)
         loss_target_model.backward()
 
-        torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.hyperparameters(),
+        torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
                                        self.networks_data.grad_clipping_coeff)
         self.networks_data.target_model_optimizer.step()
 
@@ -131,7 +131,7 @@ class TrainingPipeline:
         target_model_outputs = self.networks_data.target_model(gan_outputs)
         loss_target_model_on_gan = self.networks_data.target_model_loss_type(target_model_outputs, rand_labels)
         loss_target_model_on_gan.backward()
-        torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.hyperparameters(),
+        torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
                                        self.networks_data.grad_clipping_coeff)
         self.networks_data.target_model_optimizer.step()
 
@@ -214,7 +214,7 @@ class TrainingPipeline:
                     f"network index: {model_index}; "
                     f"data index: {i:03d}/{len(self.data_loaders.train[model_index]):03d}, "
                     f"Loss: net = {loss_target_model:6.3f}, net_on_gan = {loss_target_model_on_gan:6.3f}, "
-                    f"gan = {self.loss_gan:6.3f}, "
+                    f"gan = {self.state.loss_gan:6.3f}, "
                     f"Accs: net = {accuracies_target_model:6.3f}"
                 )
 
@@ -241,7 +241,7 @@ class TrainingPipeline:
             self.set_training_mode()
             self.train_models(model_index)
 
-            self.saver.save_model_data()
+            self.saver.save_model_data(epoch=self.state.epoch)
             self.log_execution_time(start_time, model_index)
 
         if self.state.loss_gan != -1.0:
