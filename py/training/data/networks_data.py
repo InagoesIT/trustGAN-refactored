@@ -6,7 +6,7 @@ import copy
 from py.networks.gan import Gan
 from py.performances.losses import get_softmax_cross_entropy_loss, get_combined_gan_loss
 
-package = __import__("py.training.networks")
+package = __import__("py.networks")
 
 
 class NetworksData:
