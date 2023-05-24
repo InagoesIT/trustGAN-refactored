@@ -28,7 +28,7 @@ class NetworksData:
                     )
                     break
         self.target_model_loss_type = get_softmax_cross_entropy_loss
-        self.target_model_optimizer = torch.optim.AdamW(self.target_model.hyperparameters(), weight_decay=0.05)
+        self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
 
         self.gan = Gan(
             nr_channels=training_hyperparameters.nr_channels,

@@ -33,9 +33,9 @@ class Saver:
             self.save_to_torch_full_model()
 
     def save_best_validation_loss(self, performances):
-        if (len(performances["valid"]["loss_net"]) == 1) or (
-                performances["valid"]["loss_net"][-1]
-                <= np.min(performances["valid"]["loss_net"][:-1])
+        if (len(performances["valid"]["loss_target_model"]) == 1) or (
+                performances["valid"]["loss_target_model"][-1]
+                <= np.min(performances["valid"]["loss_target_model"][:-1])
         ):
             torch.save(
                 self.networks_data.target_model.state_dict(),
@@ -44,9 +44,20 @@ class Saver:
 
     @torch.inference_mode()
     def save_epoch(
-            self, epoch, best_text, gan_outputs=None, target_model_outputs=None, save_plot=True
+            self, epoch, best_text, loader=None, gan_outputs=None, target_model_outputs=None, save_plot=True
     ):
         if save_plot:
+            if loader is not None:
+                self.networks_data.target_model.eval()
+                self.networks_data.gan.eval()
+                dimensions = list(self.modifier(next(iter(loader)))[0].shape)
+                random_inputs = torch.rand(dimensions, device=self.device)
+
+                gan_outputs = self.networks_data.gan(random_inputs)
+                target_model_outputs = self.networks_data.target_model(gan_outputs)
+                self.networks_data.target_model.train()
+                self.networks_data.gan.train()
+
             target_model_outputs = torch.nn.functional.softmax(target_model_outputs, dim=1)
             score_prediction, predicted = torch.max(target_model_outputs, 1)
 
@@ -69,5 +80,5 @@ class Saver:
 
         torch.save(
             self.networks_data.gan.state_dict(),
-            "{}/nets/gan-{}-step-{}.pth".format(self.root_folder, best_text, epoch),
+            "{}/nets/gan-{}-step-{}.pth".format(self.root_folder, best_text, epoch)            
         )

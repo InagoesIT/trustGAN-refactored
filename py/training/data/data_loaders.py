@@ -10,6 +10,7 @@ class DataLoaders:
         self.validation = []
         self.train = []
         self.test = None
+        self.set_data_loaders()
 
     def set_data_loaders(self):
         self.set_validation_and_training_data_loaders()
@@ -48,11 +49,11 @@ class DataLoaders:
         train_right_indices = list(range(validation_end_index, total_size))
         train_indices = train_left_indices + train_right_indices
 
-        train_data = dataset_handler.state[train_indices]
+        train_data = dataset_handler.data[train_indices]
         train_label = dataset_handler.label[train_indices]
         train_set = DatasetHandler(train_data, train_label)
 
-        validation_data = dataset_handler.state[validation_indices]
+        validation_data = dataset_handler.data[validation_indices]
         validation_label = dataset_handler.label[validation_indices]
         validation_set = DatasetHandler(validation_data, validation_label)
 

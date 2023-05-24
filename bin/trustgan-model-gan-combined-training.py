@@ -104,15 +104,6 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     type=int,
     help="The k for performing k-fold validation",
 )
-def produce_plots(root_folder, total_epochs, validation_interval):
-    graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
-                                   validation_interval=validation_interval)
-    graphs_plotter.plot_performances()
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_is_best_step_*.png")
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_not_is_best_step_*.png")
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_min_step_*.png")
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_max_step_*.png")
-
 
 def main(
         path_to_root_folder,
@@ -160,6 +151,16 @@ def main(
         state=state
     )
     training_pipeline.run()
+    
+
+def produce_plots(root_folder, total_epochs, validation_interval):
+    graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
+                                   validation_interval=validation_interval)
+    graphs_plotter.plot_performances()
+    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_is_best_step_*.png")
+    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_not_is_best_step_*.png")
+    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_min_step_*.png")
+    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_max_step_*.png")
 
 
 if __name__ == "__main__":

@@ -55,11 +55,11 @@ class TrainingPipeline:
         self.state = state
         self.execution_data_file_name = "{}/execution_data.npy"
         self.saver = None
-        self.nt_data = None
+        self.networks_data = None
 
         TrainingPipeline.set_seeds(state.seed)
         self.data_loaders = DataLoaders(
-            path_to_dataset=paths.dataset, training_parameters=parameters)
+            path_to_dataset=paths.dataset, training_parameters=hyperparameters)
         self.performances_logger = None
 
         self.modifier = Modifier(nr_channels=self.hyperparameters.nr_channels)
@@ -75,8 +75,8 @@ class TrainingPipeline:
 
     def load_models_if_present(self):
         for model, path_to_load in [
-            (self.nt_data.target_model, self.paths.load_target_model),
-            (self.nt_data.gan, self.paths.load_target_model),
+            (self.networks_data.target_model, self.paths.load_target_model),
+            (self.networks_data.gan, self.paths.load_target_model),
         ]:
             model = model.to(self.state.device)
 
@@ -85,17 +85,17 @@ class TrainingPipeline:
                 model.load_state_dict(ld)
 
     def target_model_train(self, inputs, labels):
-        self.nt_data.target_model.run()
-        self.nt_data.target_model_optimizer.zero_grad()
+        self.networks_data.target_model.train()
+        self.networks_data.target_model_optimizer.zero_grad()
 
-        target_model_outputs = self.nt_data.target_model(inputs)
+        target_model_outputs = self.networks_data.target_model(inputs)
 
-        loss_target_model = self.nt_data.target_model_loss_type(target_model_outputs, labels)
+        loss_target_model = self.networks_data.target_model_loss_type(target_model_outputs, labels)
         loss_target_model.backward()
 
-        torch.nn.utils.clip_grad_norm_(self.nt_data.target_model.hyperparameters(),
-                                       self.nt_data.grad_clipping_coeff)
-        self.nt_data.target_model_optimizer.step()
+        torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.hyperparameters(),
+                                       self.networks_data.grad_clipping_coeff)
+        self.networks_data.target_model_optimizer.step()
 
         _, truth = torch.max(labels, 1)
         _, predicted = torch.max(target_model_outputs, 1)
@@ -104,8 +104,8 @@ class TrainingPipeline:
         return loss_target_model, accuracies_target_model
 
     def target_model_on_gan_train(self, inputs_shape, labels_shape):
-        self.nt_data.target_model.run()
-        self.nt_data.target_model_optimizer.zero_grad()
+        self.networks_data.target_model.train()
+        self.networks_data.target_model_optimizer.zero_grad()
 
         rand_inputs = torch.rand(inputs_shape, device=self.state.device)
         rand_labels = (
@@ -116,11 +116,11 @@ class TrainingPipeline:
         networks = glob.glob("{}/nets/gan-*-step-*.pth".format(self.paths.root_folder))
 
         # load a previous gan model or use the current one
-        gan_to_use = self.nt_data.gan
+        gan_to_use = self.networks_data.gan
         if (explore_probability < 0.1) and (len(networks) > 0):
             nr_network = torch.randint(low=0, high=len(networks), size=[1])
-            self.nt_data.gan_copy.load_state_dict(torch.load(networks[nr_network]))
-            gan_to_use = self.nt_data.gan_copy
+            self.networks_data.gan_copy.load_state_dict(torch.load(networks[nr_network]))
+            gan_to_use = self.networks_data.gan_copy
 
         # get the generated output of the gan (don't run it!)
         gan_to_use.eval()
@@ -128,12 +128,12 @@ class TrainingPipeline:
         gan_to_use.run()
 
         # backprop the loss
-        target_model_outputs = self.nt_data.target_model(gan_outputs)
-        loss_target_model_on_gan = self.nt_data.target_model_loss_type(target_model_outputs, rand_labels)
+        target_model_outputs = self.networks_data.target_model(gan_outputs)
+        loss_target_model_on_gan = self.networks_data.target_model_loss_type(target_model_outputs, rand_labels)
         loss_target_model_on_gan.backward()
-        torch.nn.utils.clip_grad_norm_(self.nt_data.target_model.hyperparameters(),
-                                       self.nt_data.grad_clipping_coeff)
-        self.nt_data.target_model_optimizer.step()
+        torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.hyperparameters(),
+                                       self.networks_data.grad_clipping_coeff)
+        self.networks_data.target_model_optimizer.step()
 
         return loss_target_model_on_gan
 
@@ -151,17 +151,17 @@ class TrainingPipeline:
         return gan_outputs, target_model_outputs
 
     def gan_train(self, inputs_shape):
-        self.nt_data.gan.train()
-        self.nt_data.gan_optimizer.zero_grad()
+        self.networks_data.gan.train()
+        self.networks_data.gan_optimizer.zero_grad()
         rand_inputs = torch.rand(inputs_shape, device=self.state.device)
 
-        gan_outputs = self.nt_data.gan(rand_inputs)
-        self.nt_data.target_model.eval()
+        gan_outputs = self.networks_data.gan(rand_inputs)
+        self.networks_data.target_model.eval()
 
-        target_model_outputs = self.nt_data.target_model(gan_outputs)
-        self.nt_data.target_model.train()
+        target_model_outputs = self.networks_data.target_model(gan_outputs)
+        self.networks_data.target_model.train()
 
-        loss_gan = self.nt_data.gan_loss_type(rand_inputs.float(), gan_outputs, target_model_outputs)
+        loss_gan = self.networks_data.gan_loss_type(rand_inputs.float(), gan_outputs, target_model_outputs)
         loss_gan.backward()
 
         self.state.loss_gan = loss_gan.item()
@@ -175,13 +175,13 @@ class TrainingPipeline:
 
             self.state.best_loss = self.state.loss_gan
 
-        torch.nn.utils.clip_grad_norm_(self.nt_data.gan.hyperparameters(), 1.0)
-        self.nt_data.gan_optimizer.step()
+        torch.nn.utils.clip_grad_norm_(self.networks_data.gan.hyperparameters(), 1.0)
+        self.networks_data.gan_optimizer.step()
 
         return loss_gan
 
     def recover_from_nan(self, model_index):
-        nan_recovery = NetworkNaNRecovery(self.nt_data, self.paths.root_folder, self.state.device,
+        nan_recovery = NetworkNaNRecovery(self.networks_data, self.paths.root_folder, self.state.device,
                                           self.data_loaders.train[model_index], self.modifier)
         nan_recovery.recover_from_nan_target_model()
         nan_recovery.recover_from_nan_gan()
@@ -226,8 +226,8 @@ class TrainingPipeline:
             self.state.execution_data["time"][self.state.epoch] /= 2
 
     def set_training_mode(self):
-        self.nt_data.target_model.train()
-        self.nt_data.gan.train()
+        self.networks_data.target_model.train()
+        self.networks_data.gan.train()
 
     def train_model_with_index(self, model_index):
         for self.epoch in range(self.hyperparameters.total_epochs):
@@ -235,7 +235,7 @@ class TrainingPipeline:
             self.recover_from_nan(model_index)
 
             self.performances_logger.run(model_index)
-            self.saver.save_best_validation_loss()
+            self.saver.save_best_validation_loss(performances=self.state.perfs)
             self.state.best_loss = float("inf")
 
             self.set_training_mode()
@@ -245,17 +245,17 @@ class TrainingPipeline:
             self.log_execution_time(start_time, model_index)
 
         if self.state.loss_gan != -1.0:
-            self.nt_data.gan_scheduler.step()
+            self.networks_data.gan_scheduler.step()
         self.performances_logger.run(model_index)
 
     def initialize_data_for_new_model(self):
         self.state.epoch = 0
-        self.nt_data = NetworksData(self.state.given_target_model, self.nr_dimensions, self.hyperparameters)
-        self.saver = Saver(device=self.state.device, modifier=self.modifier, networks_data=self.nt_data,
+        self.networks_data = NetworksData(nr_dims=self.nr_dimensions, training_hyperparameters=self.hyperparameters, given_target_model=self.state.given_target_model)
+        self.saver = Saver(device=self.state.device, modifier=self.modifier, networks_data=self.networks_data,
                            root_folder=self.paths.root_folder)
         self.performances_logger = PerformancesLogger(self)
 
-        self.nt_data.gan = self.nt_data.gan.to(self.state.device)
+        self.networks_data.gan = self.networks_data.gan.to(self.state.device)
         self.load_models_if_present()
 
     def load_logs(self):

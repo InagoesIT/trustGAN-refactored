@@ -76,7 +76,7 @@ class ImagesPlotter:
                 plot_title=plot_title
             )
 
-        self.target_model.run()
+        self.target_model.train()
 
     @staticmethod
     def get_plot_title(epoch, prediction, prediction_score, label=-1):

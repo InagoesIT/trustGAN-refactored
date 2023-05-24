@@ -44,7 +44,7 @@ class NetworkNaNRecovery:
                 lr=1.0e-3 / 2 ** self.networks_data.recovered_from_nan_target_model,
             )
 
-        self.networks_data.target_model.run()
+        self.networks_data.target_model.train()
 
     @torch.inference_mode()
     def recover_from_nan_gan(self):
@@ -87,4 +87,4 @@ class NetworkNaNRecovery:
                 cycle_momentum=False,
             )
 
-        self.networks_data.gan.run()
+        self.networks_data.gan.train()

@@ -10,8 +10,8 @@ class Hyperparameters:
         proportion_target_model_alone=0.0,
         target_model_network_type="Net",
         nr_channels=None,
-        k_fold=5,
-        validation_interval=25
+        k_fold=3,
+        validation_interval=2
     ):
         self.nr_classes = nr_classes
         self.batch_size = batch_size
