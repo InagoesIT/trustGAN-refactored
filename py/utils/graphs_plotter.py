@@ -64,5 +64,5 @@ class GraphsPlotter:
         plt.xlabel("Epoch")
         plt.ylabel("Execution time in minutes")
         plt.grid()
-        plt.savefig("{}/time_plot.png".format(self.root_folder))
+        plt.savefig("{}/plots/time_plot.png".format(self.root_folder))
         plt.clf()
