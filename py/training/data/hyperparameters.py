@@ -11,7 +11,7 @@ class Hyperparameters:
         target_model_network_type="Net",
         nr_channels=None,
         k_fold=2,
-        validation_interval=2
+        validation_interval=1
     ):
         self.nr_classes = nr_classes
         self.batch_size = batch_size

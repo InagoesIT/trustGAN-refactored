@@ -74,27 +74,11 @@ class PerformancesLogger:
         return accuracies, loss
 
     @staticmethod
-    def is_validation_epoch(epoch, validation_at):
-        return (epoch + 1) % validation_at == 0 or epoch == 0
-
-    def calculate_performances(self, model_index):
-        dataloaders_and_dataset_types = [(self.training.data_loaders.train[model_index], "run")]
-        epoch = self.training.state.epoch
-        if PerformancesLogger.is_validation_epoch(
-                epoch=epoch, validation_at=self.training.hyperparameters.validation_interval):
-            dataloaders_and_dataset_types.append((self.training.data_loaders.validation[model_index], "valid"))
-
-        for dataloader, dataset_type in dataloaders_and_dataset_types:
-            accuracies, losses = self.get_performances(
-                loader=dataloader, header_str="{} {}".format(self.training.state.epoch, dataset_type)
-            )
-            if dataset_type == "valid":
-                epoch = (epoch + 1) // self.training.hyperparameters.validation_interval
-
-            self.set_performances_for_dataset(accuracies, losses, model_index, dataset_type, epoch)
+    def is_validation_epoch(epoch, validation_at, is_last_epoch=False):
+        return (epoch + 1) % validation_at == 0 or epoch == 0 or is_last_epoch
 
     def set_performances_for_dataset(self, accuracies, losses, model_index, dataset_type, epoch):
-        for metric, metric_name in [(accuracies, "accs"), (losses, "loss")]:
+        for metric, metric_name in [(accuracies, "accuracy"), (losses, "loss")]:
             for network_task, value in metric.items():
                 metric_final_name = "{}_{}".format(metric_name, network_task)
                 if metric_final_name not in self.training.state.perfs[dataset_type].keys():
@@ -105,17 +89,24 @@ class PerformancesLogger:
                 self.training.state.perfs[dataset_type][metric_final_name][epoch] += value
                 self.training.state.perfs[dataset_type][metric_final_name][epoch] /= 2
 
-    def run(self, model_index):
-        if model_index == 0:
-            self.training.state.perfs["run"]["is_best-gan-loss"] += [self.training.state.best_loss]
-            self.training.state.perfs["valid"]["is_best-gan-loss"] += [-1.0]
-        else:
-            self.training.state.perfs["run"]["is_best-gan-loss"][self.training.state.epoch] += self.training.state.best_loss
-            self.training.state.perfs["run"]["is_best-gan-loss"][self.training.state.epoch] /= 2
-            self.training.state.perfs["valid"]["is_best-gan-loss"][self.training.state.epoch] += -1.0
-            self.training.state.perfs["valid"]["is_best-gan-loss"][self.training.state.epoch] /= 2
+    def calculate_performances(self, model_index):
+        dataloaders_and_dataset_types = [(self.training.data_loaders.train[model_index], "training")]
+        epoch = self.training.state.epoch
+        if PerformancesLogger.is_validation_epoch(
+                epoch=epoch, validation_at=self.training.hyperparameters.validation_interval, is_last_epoch=epoch == self.training.hyperparameters.total_epochs - 1):
+            dataloaders_and_dataset_types.append((self.training.data_loaders.validation[model_index], "validation"))
 
+        for dataloader, dataset_type in dataloaders_and_dataset_types:
+            accuracies, losses = self.get_performances(
+                loader=dataloader, header_str="{} {}".format(self.training.state.epoch, dataset_type)
+            )
+            if dataset_type == "validation":
+                epoch = (epoch + 1) // self.training.hyperparameters.validation_interval
+
+            self.set_performances_for_dataset(accuracies, losses, model_index, dataset_type, epoch)
+
+    def run(self, model_index):
         self.calculate_performances(model_index)
         self.images_plotter.plot_best_and_worst_examples(loader=self.training.data_loaders.train[model_index], epoch=self.training.state.epoch, device=self.training.state.device)
-        self.training.saver.save_epoch(best_text="not-is_best", epoch=self.training.state.epoch, loader=self.training.data_loaders.train[model_index])
+        self.training.saver.save_epoch(best_text="not-best", epoch=self.training.state.epoch, loader=self.training.data_loaders.train[model_index])
         np.save("{}/performances.npy".format(self.training.paths.root_folder), self.training.state.perfs)

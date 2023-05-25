@@ -43,7 +43,7 @@ python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../
 ```
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 3 --batch_size 512 --nr_steps_target_model_alone 1 --device "cuda:0"
+python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 2 --batch_size 256 --nr_steps_target_model_alone 1 --device "cuda:0"
 ```
 
 ## Test
@@ -51,7 +51,7 @@ python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../
 You can get summary plots and gifs with:
 
 ```bash
-python3 ../bin/trustgan-model-gan-combined-training_pipeline.py --path_to_root_folder "mnist-wi-gan/" --path_to_dataset "data/MNIST" --nr-classes 10 --request-plots
+python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../" --path_to_dataset "data/MNIST" --nr_classes 10 --request-plots --total_epochs 3 --validation_interval 2
 ```
 
 ## Contributing

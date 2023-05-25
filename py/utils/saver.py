@@ -25,7 +25,7 @@ class Saver:
         if epoch % 50 == 0:
             torch.save(
                 self.networks_data.target_model.state_dict(),
-                "{}/nets/target_model-step-{}.pth".format(self.root_folder, epoch),
+                "{}/networks/target_model-step-{}.pth".format(self.root_folder, epoch),
             )
             torch.save(self.networks_data.target_model.state_dict(),
                        "{}/target_model.pth".format(self.root_folder))
@@ -33,13 +33,13 @@ class Saver:
             self.save_to_torch_full_model()
 
     def save_best_validation_loss(self, performances):
-        if (len(performances["valid"]["loss_target_model"]) == 1) or (
-                performances["valid"]["loss_target_model"][-1]
-                <= np.min(performances["valid"]["loss_target_model"][:-1])
+        if (len(performances["validation"]["loss_target_model"]) == 1) or (
+                performances["validation"]["loss_target_model"][-1]
+                <= np.min(performances["validation"]["loss_target_model"][:-1])
         ):
             torch.save(
                 self.networks_data.target_model.state_dict(),
-                os.path.join(self.root_folder, "nets/target_model-is_best-valid-loss.pth"),
+                os.path.join(self.root_folder, "networks/target_model-is_best-valid-loss.pth"),
             )
 
     @torch.inference_mode()
@@ -80,5 +80,5 @@ class Saver:
 
         torch.save(
             self.networks_data.gan.state_dict(),
-            "{}/nets/gan-{}-step-{}.pth".format(self.root_folder, best_text, epoch)            
+            "{}/networks/gan-{}-step-{}.pth".format(self.root_folder, best_text, epoch)            
         )

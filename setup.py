@@ -59,7 +59,7 @@ setuptools.setup(
         "py.dataset",
         "py.networks",
         "py.performances",
-        "py.prediction",
+        "py.inference",
         "py.training.data",
         "py.training",
         "py.utils"
@@ -68,7 +68,7 @@ setuptools.setup(
         "py.dataset": "py/dataset",
         "py.networks": "py/networks",
         "py.performances": "py/performances",
-        "py.prediction": "py/prediction",
+        "py.inference": "py/inference",
         "py.training.data": "py/training/data",
         "py.training": "py/training",
         "py.utils": "py/utils"

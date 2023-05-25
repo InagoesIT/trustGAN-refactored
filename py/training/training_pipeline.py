@@ -11,7 +11,6 @@
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
@@ -113,7 +112,7 @@ class TrainingPipeline:
         )
 
         explore_probability = torch.rand(1)
-        networks = glob.glob("{}/nets/gan-*-step-*.pth".format(self.paths.root_folder))
+        networks = glob.glob("{}/networks/gan-*-step-*.pth".format(self.paths.root_folder))
 
         # load a previous gan model or use the current one
         gan_to_use = self.networks_data.gan
@@ -122,10 +121,10 @@ class TrainingPipeline:
             self.networks_data.gan_copy.load_state_dict(torch.load(networks[nr_network]))
             gan_to_use = self.networks_data.gan_copy
 
-        # get the generated output of the gan (don't run it!)
+        # get the generated output of the gan (don't train it!)
         gan_to_use.eval()
         gan_outputs = gan_to_use(rand_inputs)
-        gan_to_use.run()
+        gan_to_use.train()
 
         # backprop the loss
         target_model_outputs = self.networks_data.target_model(gan_outputs)
@@ -145,8 +144,8 @@ class TrainingPipeline:
 
         gan_outputs = self.networks_data.gan(rand_inputs)
         target_model_outputs = self.networks_data.target_model(gan_outputs)
-        self.networks_data.target_model.run()
-        self.networks_data.gan.run()
+        self.networks_data.target_model.train()
+        self.networks_data.gan.train()
 
         return gan_outputs, target_model_outputs
 
@@ -167,15 +166,16 @@ class TrainingPipeline:
         self.state.loss_gan = loss_gan.item()
         if self.state.loss_gan < self.state.best_loss:
             self.saver.save_epoch(
-                best="is_best",
+                best_text="is_best",
                 gan_outputs=gan_outputs,
                 target_model_outputs=target_model_outputs,
                 save_plot=True,
+                epoch=self.state.epoch
             )
 
             self.state.best_loss = self.state.loss_gan
 
-        torch.nn.utils.clip_grad_norm_(self.networks_data.gan.hyperparameters(), 1.0)
+        torch.nn.utils.clip_grad_norm_(self.networks_data.gan.parameters(), 1.0)
         self.networks_data.gan_optimizer.step()
 
         return loss_gan
@@ -213,9 +213,9 @@ class TrainingPipeline:
                 print(
                     f"network index: {model_index}; "
                     f"data index: {i:03d}/{len(self.data_loaders.train[model_index]):03d}, "
-                    f"Loss: net = {loss_target_model:6.3f}, net_on_gan = {loss_target_model_on_gan:6.3f}, "
+                    f"Losses: target model = {loss_target_model:6.3f},  target model on gan = {loss_target_model_on_gan:6.3f}, "
                     f"gan = {self.state.loss_gan:6.3f}, "
-                    f"Accs: net = {accuracies_target_model:6.3f}"
+                    f"Accuracies: target model = {accuracies_target_model:6.3f}"
                 )
 
     def log_execution_time(self, start_time, model_index):
@@ -230,7 +230,7 @@ class TrainingPipeline:
         self.networks_data.gan.train()
 
     def train_model_with_index(self, model_index):
-        for self.epoch in range(self.hyperparameters.total_epochs):
+        for self.state.epoch in range(self.hyperparameters.total_epochs):
             start_time = time.time()
             self.recover_from_nan(model_index)
 
@@ -269,9 +269,7 @@ class TrainingPipeline:
             self.state.execution_data = self.state.execution_data.item()
 
     def initialize_state(self):
-        self.state.perfs = {"run": {}, "valid": {}}
-        self.state.perfs["run"]["is_best-gan-loss"] = []
-        self.state.perfs["valid"]["is_best-gan-loss"] = []
+        self.state.perfs = {"training": {}, "validation": {}}
         self.state.best_loss = float("inf")
 
     def log_execution_data(self):
@@ -280,7 +278,7 @@ class TrainingPipeline:
 
     def run(self):
         self.initialize_state()
-        self.load_logs()
+        # self.load_logs()
 
         for model_index in range(self.hyperparameters.k_fold):
             self.initialize_data_for_new_model()

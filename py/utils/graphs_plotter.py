@@ -7,24 +7,47 @@ from py.performances.performances_logger import PerformancesLogger
 class GraphsPlotter:
     def __init__(self, root_folder, total_epochs, validation_interval):
         self.root_folder = root_folder
-        self.performances = performances = np.load("{}/performances.npy".format(self.root_folder), allow_pickle=True)
-        self.performances = performances.item()       
+        self.total_epochs = total_epochs
+        self.validation_interval = validation_interval
+        self.performances = np.load("{}/performances.npy".format(self.root_folder), allow_pickle=True)
+        self.performances = self.performances.item()
+        self.train_metrics = list(self.performances[list(self.performances.keys())[0]].keys()) 
+        
+    def get_validation_epochs(self, epochs):
+        epochs = [epoch for epoch in epochs if
+                              PerformancesLogger.is_validation_epoch(epoch=epoch - 1,
+                                                                     validation_at=self.validation_interval, 
+                                                                     is_last_epoch=epoch==self.total_epochs-1)]
+        epochs.pop()
+        return epochs
+    
+    @staticmethod
+    def transform_metric_variable_to_title(metric):
+        metric_title = ""
+        metric_title += metric[0].upper()
+        for index in range(1, len(metric)):
+            if metric[index] == "_":
+                metric_title += " "
+            elif metric_title[index - 1] == " ":
+                metric_title += metric[index].upper()
+            else:
+                metric_title += metric[index]        
+        return metric_title
 
-    def plot_performances(self):    
-        train_metrics = list(self.performances[list(performances.keys())[0]].keys())
-
-        for metric in train_metrics:
+    def plot_performances(self):           
+        for metric in self.train_metrics:
             for dataset_type in self.performances.keys():
                 performances_for_metric = self.performances[dataset_type][metric]
-                epochs = [epoch for epoch in range(self.total_epochs)]
-                if len(performances_for_metric) != self.total_epochs:
-                    epochs = [epoch for epoch in epochs if
-                              PerformancesLogger.is_validation_epoch(epoch=epoch,
-                                                                     validation_at=self.validation_interval)]
-                plt.plot(epochs, performances, label=dataset_type)
-
+                epochs = [epoch for epoch in range(self.total_epochs + 1)]
+                if len(performances_for_metric) != self.total_epochs + 1:
+                    epochs = self.get_validation_epochs(epochs)
+                plt.plot(epochs, performances_for_metric, label=dataset_type, markersize=0.7)
+                
+            
+            metric_name = GraphsPlotter.transform_metric_variable_to_title(metric)            
+            plt.xticks([epoch for epoch in range(self.total_epochs + 1)])
             plt.xlabel("Epoch")
-            plt.ylabel(metric)
+            plt.ylabel(metric_name)
             plt.legend()
             plt.grid()
             plt.savefig("{}/performance-plots/{}.png".format(self.root_folder, metric))
@@ -33,11 +56,13 @@ class GraphsPlotter:
     def plot_execution_time(self):
         time_data = np.load("{}/execution_data.npy".format(self.root_folder), allow_pickle=True)
         time_data = time_data.item()
-
-        for epoch, time in enumerate(time_data["time"]):
-            plt.plot(epoch, time)
+        print(time_data)
+        
+        epochs = [epoch for epoch in range(self.total_epochs)]
+        plt.plot(epochs, time_data["time"])
+        plt.xticks(epochs)
         plt.xlabel("Epoch")
         plt.ylabel("Execution time in minutes")
         plt.grid()
-        plt.savefig("{}/time-plot.png".format(self.root_folder))
+        plt.savefig("{}/time_plot.png".format(self.root_folder))
         plt.clf()

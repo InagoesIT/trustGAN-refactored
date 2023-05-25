@@ -157,6 +157,7 @@ def produce_plots(root_folder, total_epochs, validation_interval):
     graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
                                    validation_interval=validation_interval)
     graphs_plotter.plot_performances()
+    graphs_plotter.plot_execution_time()
     ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_is_best_step_*.png")
     ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_not_is_best_step_*.png")
     ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_min_step_*.png")

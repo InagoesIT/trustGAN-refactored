@@ -2,14 +2,14 @@ import numpy as np
 import torch
 
 
-class Predictor:
+class Inference:
     def __init__(self, networks_data, modifier, device):
         self.networks_data = networks_data
         self.modifier = modifier
         self.device = device
 
     @torch.inference_mode()
-    def get_predictions(self, loader, score_type="MCP"):
+    def run(self, loader, score_type="MCP"):
         if type(loader) == str:
             loader = getattr(self, loader)
 

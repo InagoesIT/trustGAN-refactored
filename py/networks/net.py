@@ -11,7 +11,7 @@ class Net(torch.nn.Module):
         nr_channels,
         kernel_size=3,
         fcl=64,
-        residual_units=[1, 2, 4, 8, 16, 32, 64],
+        residual_units=[1, 2, 4, 8],
         is_weight_norm=True,
         is_batch_norm=False,
         dilation_coef=2,
@@ -48,7 +48,7 @@ class Net(torch.nn.Module):
             ]
         )
 
-        # This convolution is very important. Without the target_model does not learn
+        # This convolution is very important. Without it the target_model does not learn
         self.conv1 = conv(in_channels=chs[-1], out_channels=chs[-1], kernel_size=1)
 
         self.lin_00 = torch.nn.Linear(in_features=chs[-1], out_features=fcl)

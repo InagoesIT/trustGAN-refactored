@@ -40,3 +40,13 @@ py/utils/.ipynb_checkpoints/saver-checkpoint.py
 bin/.ipynb_checkpoints/trustgan-model-gan-combined-training-checkpoint.py
 bin/.ipynb_checkpoints/trustgan-download-data-checkpoint.py
 .ipynb_checkpoints/SECURITY-checkpoint.md
+.ipynb_checkpoints/setup-checkpoint.py
+.ipynb_checkpoints/time_plot-checkpoint.png
+performance-plots/.ipynb_checkpoints/accuracy_gan-checkpoint.png
+performance-plots/.ipynb_checkpoints/accuracy_target_model_on_gan-checkpoint.png
+performance-plots/.ipynb_checkpoints/accuracy_target_model-checkpoint.png
+performance-plots/.ipynb_checkpoints/loss_target_model-checkpoint.png
+performance-plots/.ipynb_checkpoints/loss_gan-checkpoint.png
+performance-plots/.ipynb_checkpoints/loss_target_model_on_gan-checkpoint.png
+py/networks/.ipynb_checkpoints/net-checkpoint.py
+py/training/data/.ipynb_checkpoints/paths-checkpoint.py
