@@ -14,8 +14,8 @@ class DataLoaders:
 
     def set_data_loaders(self):
         self.set_validation_and_training_data_loaders()
-        self.set_test_data_loader()
-
+        self.set_test_data_loader()        
+        
     def set_validation_and_training_data_loaders(self):
         input_items, labels = DataLoader.get_processed_input_and_labels(
                 path_to_dataset=self.path_to_dataset,
@@ -25,6 +25,10 @@ class DataLoaders:
         dataset_handler = DatasetHandler(input_items, labels)
         total_size = len(dataset_handler)
         fold_size = int(total_size / self.training_parameters.k_fold)
+        
+        if self.training_parameters.k_fold < 2:
+            print("INFO: The test and validation set will be split 80/20, there won't be any cross-validation.")
+            fold_size = int(total_size * 0.2)
 
         for fold_index in range(self.training_parameters.k_fold):
             train_set, validation_set = DataLoaders.get_train_and_validation_dataset(

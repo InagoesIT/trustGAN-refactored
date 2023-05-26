@@ -116,7 +116,7 @@ class TrainingPipeline:
 
         # load a previous gan model or use the current one
         gan_to_use = self.networks_data.gan
-        if (explore_probability < 0.1) and (len(networks) > 0):
+        if ((explore_probability < 0.1) and len(networks) > 0):
             nr_network = torch.randint(low=0, high=len(networks), size=[1])
             self.networks_data.gan_copy.load_state_dict(torch.load(networks[nr_network]))
             gan_to_use = self.networks_data.gan_copy
