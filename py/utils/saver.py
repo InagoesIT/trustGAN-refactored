@@ -21,16 +21,13 @@ class Saver:
 
         torch.save(checkpoint, "{}/target_model-fullModel.pth".format(self.root_folder))
 
-    def save_model_data(self, epoch):
-        if epoch % 50 == 0:
-            torch.save(
-                self.networks_data.target_model.state_dict(),
-                "{}/networks/target_model-step-{}.pth".format(self.root_folder, epoch),
-            )
-            torch.save(self.networks_data.target_model.state_dict(),
-                       "{}/target_model.pth".format(self.root_folder))
-            torch.save(self.networks_data.gan.state_dict(), "{}/gan.pth".format(self.root_folder))
-            self.save_to_torch_full_model()
+    def save_model_data(self, model_index=None):
+        model_index_text = ""
+        if model_index != None:
+            model_index_text = f"_{model_index}"
+        torch.save(self.networks_data.target_model.state_dict(),
+                    "{}/target_model{}.pth".format(self.root_folder, model_index_text))
+        torch.save(self.networks_data.gan.state_dict(), "{}/gan{}.pth".format(self.root_folder, model_index_text))
 
     def save_best_validation_loss(self, performances):
         if (len(performances["validation"]["loss_target_model"]) == 1) or (

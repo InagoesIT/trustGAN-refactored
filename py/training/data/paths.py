@@ -6,11 +6,13 @@ class Paths:
                  root_folder,
                  dataset,
                  load_target_model=None,
-                 load_gan=None):
+                 load_gan=None,
+                 file_name_of_performances=None):
         self.root_folder = root_folder
         self.dataset = dataset
         self.load_target_model = load_target_model
         self.load_gan = load_gan
+        self.file_name_of_performances = file_name_of_performances
         self.process_root_folder()
         
     def process_root_folder(self):

@@ -5,13 +5,13 @@ from py.performances.performances_logger import PerformancesLogger
 
 
 class GraphsPlotter:
-    def __init__(self, root_folder, total_epochs, validation_interval):
+    def __init__(self, root_folder, total_epochs, validation_interval, file_name_of_performances):
         self.root_folder = root_folder
         self.total_epochs = total_epochs
         self.validation_interval = validation_interval
-        self.performances = np.load("{}/performances.npy".format(self.root_folder), allow_pickle=True)
-        self.performances = self.performances.item()
-        self.train_metrics = list(self.performances[list(self.performances.keys())[0]].keys()) 
+        self.average_performances = np.load("{}/{}".format(self.root_folder, file_name_of_performances), allow_pickle=True)
+        self.average_performances = self.average_performances.item()
+        self.train_metrics = list(self.average_performances[list(self.average_performances.keys())[0]].keys()) 
         
     def get_validation_epochs(self, epochs):
         epochs = [epoch for epoch in epochs if
@@ -36,8 +36,8 @@ class GraphsPlotter:
 
     def plot_performances(self):           
         for metric in self.train_metrics:
-            for dataset_type in self.performances.keys():
-                performances_for_metric = self.performances[dataset_type][metric]
+            for dataset_type in self.average_performances.keys():
+                performances_for_metric = self.average_performances[dataset_type][metric]
                 epochs = [epoch for epoch in range(self.total_epochs + 1)]
                 if len(performances_for_metric) != self.total_epochs + 1:
                     epochs = self.get_validation_epochs(epochs)

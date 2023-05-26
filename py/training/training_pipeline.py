@@ -235,14 +235,15 @@ class TrainingPipeline:
             self.recover_from_nan(model_index)
 
             self.performances_logger.run(model_index)
-            self.saver.save_best_validation_loss(performances=self.state.perfs)
+            self.saver.save_best_validation_loss(performances=self.state.average_performances)
             self.state.best_loss = float("inf")
 
             self.set_training_mode()
             self.train_models(model_index)
 
-            self.saver.save_model_data(epoch=self.state.epoch)
             self.log_execution_time(start_time, model_index)
+        
+        self.saver.save_model_data(model_index=model_index)
 
         if self.state.loss_gan != -1.0:
             self.networks_data.gan_scheduler.step()
@@ -257,27 +258,26 @@ class TrainingPipeline:
 
         self.networks_data.gan = self.networks_data.gan.to(self.state.device)
         self.load_models_if_present()
+        self.state.initialize_model_performances()
 
-    def load_logs(self):
-        if os.path.exists("{}/performances.npy".format(self.paths.root_folder)):
-            self.state.perfs = np.load("{}/performances.npy".format(self.paths.root_folder), allow_pickle=True)
-            self.state.perfs = self.state.perfs.item()
-
-        if os.path.exists(self.execution_data_file_name.format(self.paths.root_folder)):
-            self.state.execution_data = np.load(self.execution_data_file_name.format(self.paths.root_folder),
-                                                allow_pickle=True)
+    def load_logs(self):    
+        execution_data_path = self.execution_data_file_name.format(self.paths.root_folder)
+        if os.path.exists(execution_data_path):
+            self.state.execution_data = np.load(execution_data_path, allow_pickle=True)
             self.state.execution_data = self.state.execution_data.item()
-
-    def initialize_state(self):
-        self.state.perfs = {"training": {}, "validation": {}}
-        self.state.best_loss = float("inf")
+        if self.paths.file_name_of_performances == None:
+            return
+        performances_path = "{}/{}".format(self.paths.root_folder, self.paths.file_name_of_performances)
+        if os.path.exists(performances_path):
+            self.state.average_performances = np.load(performances_path, allow_pickle=True)
+            self.state.average_performances = self.state.average_performances.item()
 
     def log_execution_data(self):
         self.state.execution_data["memory"] = [torch.cuda.max_memory_allocated(0)]
         np.save(self.execution_data_file_name.format(self.paths.root_folder), self.state.execution_data)
 
     def run(self):
-        self.initialize_state()
+        self.state.initialize_performances()
         # self.load_logs()
 
         for model_index in range(self.hyperparameters.k_fold):

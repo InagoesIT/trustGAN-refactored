@@ -77,17 +77,26 @@ class PerformancesLogger:
     def is_validation_epoch(epoch, validation_at, is_last_epoch=False):
         return (epoch + 1) % validation_at == 0 or epoch == 0 or is_last_epoch
 
+    def add_data_to_model_performances(self, metric_final_name, dataset_type, value):        
+        if metric_final_name not in self.training.state.model_performances[dataset_type].keys():                  
+            self.training.state.model_performances[dataset_type][metric_final_name] = []
+        self.training.state.model_performances[dataset_type][metric_final_name] += [value]
+
+    def add_data_to_average_performances(self, metric_final_name, dataset_type, value, epoch, model_index):
+        if metric_final_name not in self.training.state.average_performances[dataset_type].keys():            
+            self.training.state.average_performances[dataset_type][metric_final_name] = []   
+        if model_index == 0:    
+            self.training.state.average_performances[dataset_type][metric_final_name] += [value]      
+            return        
+        self.training.state.average_performances[dataset_type][metric_final_name][epoch] += value
+        self.training.state.average_performances[dataset_type][metric_final_name][epoch] /= 2
+
     def set_performances_for_dataset(self, accuracies, losses, model_index, dataset_type, epoch):
         for metric, metric_name in [(accuracies, "accuracy"), (losses, "loss")]:
             for network_task, value in metric.items():
                 metric_final_name = "{}_{}".format(metric_name, network_task)
-                if metric_final_name not in self.training.state.perfs[dataset_type].keys():
-                    self.training.state.perfs[dataset_type][metric_final_name] = []
-                if model_index == 0:
-                    self.training.state.perfs[dataset_type][metric_final_name] += [value]
-                    continue
-                self.training.state.perfs[dataset_type][metric_final_name][epoch] += value
-                self.training.state.perfs[dataset_type][metric_final_name][epoch] /= 2
+                self.add_data_to_model_performances(metric_final_name, dataset_type, value)
+                self.add_data_to_average_performances(metric_final_name, dataset_type, value, epoch, model_index)
 
     def calculate_performances(self, model_index):
         dataloaders_and_dataset_types = [(self.training.data_loaders.train[model_index], "training")]
@@ -109,4 +118,5 @@ class PerformancesLogger:
         self.calculate_performances(model_index)
         self.images_plotter.plot_best_and_worst_examples(loader=self.training.data_loaders.train[model_index], epoch=self.training.state.epoch, device=self.training.state.device)
         self.training.saver.save_epoch(best_text="not-best", epoch=self.training.state.epoch, loader=self.training.data_loaders.train[model_index])
-        np.save("{}/performances.npy".format(self.training.paths.root_folder), self.training.state.perfs)
+        np.save("{}/average_performances.npy".format(self.training.paths.root_folder), self.training.state.average_performances)
+        np.save("{}/model_performances_{}.npy".format(self.training.paths.root_folder, model_index), self.training.state.model_performances)

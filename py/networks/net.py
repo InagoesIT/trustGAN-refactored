@@ -10,7 +10,7 @@ class Net(torch.nn.Module):
         nr_classes,
         nr_channels,
         kernel_size=3,
-        fcl=64,
+        fcl=8,
         residual_units=[1, 2, 4, 8],
         is_weight_norm=True,
         is_batch_norm=False,
@@ -31,7 +31,7 @@ class Net(torch.nn.Module):
         chs = np.array(residual_units)
         chs = chs[chs > nr_channels]
         chs = np.append([nr_channels], chs)
-        print(f"INFO: Using these different chanel steps {chs}")
+        print(f"INFO: Using these different channel steps {chs}")
 
         self.layers = torch.nn.ModuleList(
             [
