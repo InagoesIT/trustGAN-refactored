@@ -12,14 +12,6 @@ class GraphsPlotter:
         self.average_performances = np.load("{}/{}".format(self.root_folder, file_name_of_performances), allow_pickle=True)
         self.average_performances = self.average_performances.item()
         self.train_metrics = list(self.average_performances[list(self.average_performances.keys())[0]].keys()) 
-        
-    def get_validation_epochs(self, epochs):
-        epochs = [epoch for epoch in epochs if
-                              PerformancesLogger.is_validation_epoch(epoch=epoch - 1,
-                                                                     validation_at=self.validation_interval, 
-                                                                     is_last_epoch=epoch==self.total_epochs-1)]
-        epochs.pop()
-        return epochs
     
     @staticmethod
     def transform_metric_variable_to_title(metric):
@@ -40,12 +32,12 @@ class GraphsPlotter:
                 performances_for_metric = self.average_performances[dataset_type][metric]
                 epochs = [epoch for epoch in range(self.total_epochs + 1)]
                 if len(performances_for_metric) != self.total_epochs + 1:
-                    epochs = self.get_validation_epochs(epochs)
-                plt.plot(epochs, performances_for_metric, label=dataset_type, markersize=0.7)
-                
+                    epochs = PerformancesLogger.get_validation_epochs(epochs=epochs,
+                                                                validation_at=self.validation_interval,
+                                                                total_epochs=self.total_epochs)
+                plt.plot(epochs, performances_for_metric, label=dataset_type, markersize=0.7)                
             
-            metric_name = GraphsPlotter.transform_metric_variable_to_title(metric)            
-            plt.xticks([epoch for epoch in range(self.total_epochs + 1)])
+            metric_name = GraphsPlotter.transform_metric_variable_to_title(metric)    
             plt.xlabel("Epoch")
             plt.ylabel(metric_name)
             plt.legend()

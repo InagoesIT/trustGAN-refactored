@@ -151,10 +151,10 @@ class PerformancesLogger:
         np.save("{}/average_performances.npy".format(self.training.paths.root_folder), self.training.state.average_performances)
         np.save("{}/model_performances_{}.npy".format(self.training.paths.root_folder, model_index), self.training.state.model_performances)
 
-        if self.training.state.epoch == self.training.hyperparameters.total_epochs - 1:
-            model_label = self.training.state.model_label
-            self.write_data_to_tensorboard(performance_label=f"model_index={model_index}", 
-                                    performances=self.training.state.model_performances, model_label=model_label)
-            if model_index == self.training.hyperparameters.k_fold - 1:
-                self.write_data_to_tensorboard(performance_label="average", 
-                                        performances=self.training.state.model_performances, model_label=model_label)
+        # if self.training.state.epoch == self.training.hyperparameters.total_epochs - 1:
+        #     model_label = self.training.state.model_label
+        #     self.write_data_to_tensorboard(performance_label=f"model_index={model_index}", 
+        #                             performances=self.training.state.model_performances, model_label=model_label)
+        #     if model_index == self.training.hyperparameters.k_fold - 1:
+        #         self.write_data_to_tensorboard(performance_label="average", 
+        #                                 performances=self.training.state.model_performances, model_label=model_label)

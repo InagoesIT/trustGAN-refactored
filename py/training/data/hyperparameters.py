@@ -2,16 +2,16 @@ class Hyperparameters:
     def __init__(
         self,
         nr_classes,
-        batch_size=64,
-        total_epochs=2,
+        batch_size=512,
+        total_epochs=100,
         nr_steps_target_model_on_gan=1,
         nr_steps_gan=1,
         nr_step_target_model_alone=1,
         proportion_target_model_alone=0.0,
         target_model_network_type="Net",
         nr_channels=None,
-        k_fold=2,
-        validation_interval=1
+        k_fold=5,
+        validation_interval=25
     ):
         self.nr_classes = nr_classes
         self.batch_size = batch_size
