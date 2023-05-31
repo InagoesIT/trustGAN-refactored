@@ -23,7 +23,8 @@ class DataLoaders:
                 dataset_type="trainvalidation")
 
         dataset_handler = DatasetHandler(input_items, labels)
-        total_size = len(dataset_handler)
+        total_size = 50
+        # total_size = len(dataset_handler)
         fold_size = int(total_size / self.training_parameters.k_fold)
         
         if self.training_parameters.k_fold < 2:

@@ -110,6 +110,12 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     type=str,
     help="The path for loading the performances",
 )
+@click.option(
+    "--model_label",
+    default="",
+    type=str,
+    help="The label to give for memorising tensorboard data for this model",
+)
 
 def main(
         path_to_root_folder,
@@ -130,7 +136,8 @@ def main(
         target_model_network_type,
         validation_interval,
         k_fold, 
-        file_name_of_performances
+        file_name_of_performances,
+        model_label
 ):
     if request_plots:
         produce_plots(path_to_root_folder, total_epochs, validation_interval, file_name_of_performances)
@@ -150,7 +157,7 @@ def main(
     )
     paths = Paths(dataset=path_to_dataset, root_folder=path_to_root_folder, load_target_model=path_to_load_target_model,
                   load_gan=path_to_load_gan, file_name_of_performances=file_name_of_performances)
-    state = State(given_target_model=given_target_model, verbose=verbose, device_name=device)
+    state = State(given_target_model=given_target_model, verbose=verbose, device_name=device, model_label=model_label)
 
     training_pipeline = TrainingPipeline(
         hyperparameters=hyperparameters,

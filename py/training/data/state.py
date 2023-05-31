@@ -2,10 +2,11 @@ import torch
 
 
 class State:
-    def __init__(self, given_target_model=None, verbose=True, device_name=None, seed=42):
+    def __init__(self, given_target_model=None, verbose=True, device_name=None, seed=42, model_label=""):
         self.given_target_model = given_target_model
         self.verbose = verbose
         self.epoch = 0
+        self.model_label = model_label
         self.average_performances = None
         self.model_performances = None
         self.best_loss = None
