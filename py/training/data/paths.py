@@ -13,7 +13,7 @@ class Paths:
         self.load_target_model = load_target_model
         self.load_gan = load_gan
         self.file_name_of_performances = file_name_of_performances
-        Paths.process_root_folder()
+        Paths.process_root_folder(root_folder)
     
     @staticmethod
     def process_root_folder(root_folder):
