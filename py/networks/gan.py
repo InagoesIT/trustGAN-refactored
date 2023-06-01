@@ -9,7 +9,7 @@ class Gan(torch.nn.Module):
         self,
         nr_channels,
         kernel_size=3,
-        residualUnits=[1, 2, 4, 8, 16],
+        residual_units=[1, 2],
         is_weight_norm=True,
         is_batch_norm=False,
         dilation_coefficient=2,

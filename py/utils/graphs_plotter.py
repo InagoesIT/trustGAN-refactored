@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -46,13 +48,14 @@ class GraphsPlotter:
             plt.clf()
 
     def plot_execution_time(self):
-        time_data = np.load("{}/execution_data.npy".format(self.root_folder), allow_pickle=True)
+        time_data_path = "{}/execution_data.npy".format(self.root_folder)
+        if not os.path.exists(time_data_path):
+            return
+        time_data = np.load(time_data_path, allow_pickle=True)
         time_data = time_data.item()
-        print(time_data)
         
         epochs = [epoch for epoch in range(self.total_epochs)]
         plt.plot(epochs, time_data["time"])
-        plt.xticks(epochs)
         plt.xlabel("Epoch")
         plt.ylabel("Execution time in minutes")
         plt.grid()

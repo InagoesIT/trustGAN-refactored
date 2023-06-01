@@ -260,13 +260,19 @@ class TrainingPipeline:
         self.load_models_if_present()
         self.state.initialize_model_performances()
 
-    def load_logs(self):    
+    def load_model_performances(self):
+        model_performances_path = "{}/{}".format(self.paths.root_folder)
+        if os.path.exists(model_performances_path):
+            self.state.model_performances = np.load(model_performances_path, allow_pickle=True)
+            self.state.model_performances = self.state.average_performances.item()
+
+    def load_logs(self):
+        if self.paths.file_name_of_performances is None:
+            return
         execution_data_path = self.execution_data_file_name.format(self.paths.root_folder)
         if os.path.exists(execution_data_path):
             self.state.execution_data = np.load(execution_data_path, allow_pickle=True)
             self.state.execution_data = self.state.execution_data.item()
-        if self.paths.file_name_of_performances == None:
-            return
         performances_path = "{}/{}".format(self.paths.root_folder, self.paths.file_name_of_performances)
         if os.path.exists(performances_path):
             self.state.average_performances = np.load(performances_path, allow_pickle=True)
@@ -278,7 +284,7 @@ class TrainingPipeline:
 
     def run(self):
         self.state.initialize_performances()
-        # self.load_logs()
+        self.load_logs()
 
         for model_index in range(self.hyperparameters.k_fold):
             self.initialize_data_for_new_model()
