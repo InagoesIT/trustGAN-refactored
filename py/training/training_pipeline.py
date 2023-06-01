@@ -75,7 +75,7 @@ class TrainingPipeline:
     def load_models_if_present(self):
         for model, path_to_load in [
             (self.networks_data.target_model, self.paths.load_target_model),
-            (self.networks_data.gan, self.paths.load_target_model),
+            (self.networks_data.gan, self.paths.load_gan),
         ]:
             model = model.to(self.state.device)
 
