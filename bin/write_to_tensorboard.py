@@ -25,7 +25,7 @@ from py.utils.tensorboard_writer import TensorboardWriter
     help="At which intervals was validation done.",
 )
 @click.option(
-    "--file_name_of_performances",
+    "--path_to_performances",
     default=None,
     type=str,
     help="The path for loading the performances",
@@ -47,17 +47,17 @@ def main(
         path_to_root_folder,
         total_epochs,
         validation_interval,
-        file_name_of_performances,
+        path_to_performances,
         plot_together,
         plot_only_average_performances
 ):
     tensorboard_writer = TensorboardWriter(path_to_root_folder,
                                            total_epochs,
                                            validation_interval,
-                                           file_name_of_performances)
+                                           path_to_performances)
 
     if plot_only_average_performances:
-        label = file_name_of_performances.split("_")[-1] + "_model"
+        label = path_to_performances.split("_")[-1] + "_model"
         tensorboard_writer.plot_model_performances(performance_label=label)
     elif plot_together:
         tensorboard_writer.plot_models_together()

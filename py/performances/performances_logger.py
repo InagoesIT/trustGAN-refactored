@@ -115,7 +115,7 @@ class PerformancesLogger:
 
     def average_performances_were_calculated(self):
         return self.training.state.epoch == 0 and \
-            self.training.paths.file_name_of_performances is not None
+            self.training.paths.path_to_performances is not None
 
     def set_performances_for_dataset(self, accuracies, losses, model_index, dataset_type, epoch, add_to_average):
         for metric, metric_name in [(accuracies, "accuracy"), (losses, "loss")]:

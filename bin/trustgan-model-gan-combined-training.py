@@ -105,7 +105,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     help="The k for performing k-fold validation",
 )
 @click.option(
-    "--file_name_of_performances",
+    "--path_to_performances",
     default=None,
     type=str,
     help="The path for loading the performances",
@@ -136,11 +136,11 @@ def main(
         target_model_network_type,
         validation_interval,
         k_fold, 
-        file_name_of_performances,
+        path_to_performances,
         model_label
 ):
     if request_plots:
-        produce_plots(path_to_root_folder, total_epochs, validation_interval, file_name_of_performances)
+        produce_plots(path_to_root_folder, total_epochs, validation_interval, path_to_performances)
         return
 
     hyperparameters = Hyperparameters(
@@ -156,7 +156,7 @@ def main(
         validation_interval=validation_interval
     )
     paths = Paths(dataset=path_to_dataset, root_folder=path_to_root_folder, load_target_model=path_to_load_target_model,
-                  load_gan=path_to_load_gan, file_name_of_performances=file_name_of_performances)
+                  load_gan=path_to_load_gan, path_to_performances=path_to_performances)
     state = State(given_target_model=given_target_model, verbose=verbose, device_name=device, model_label=model_label)
 
     training_pipeline = TrainingPipeline(
@@ -167,10 +167,10 @@ def main(
     training_pipeline.run()
     
 
-def produce_plots(root_folder, total_epochs, validation_interval, file_name_of_performances):
+def produce_plots(root_folder, total_epochs, validation_interval, path_to_performances):
     graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
                                    validation_interval=validation_interval, 
-                                   file_name_of_performances=file_name_of_performances)
+                                   path_to_performances=path_to_performances)
     graphs_plotter.plot_performances()
     graphs_plotter.plot_execution_time()
     ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_is_best_step_*.png")

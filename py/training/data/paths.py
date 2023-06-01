@@ -7,12 +7,12 @@ class Paths:
                  dataset,
                  load_target_model=None,
                  load_gan=None,
-                 file_name_of_performances=None):
+                 path_to_performances=None):
         self.root_folder = root_folder
         self.dataset = dataset
         self.load_target_model = load_target_model
         self.load_gan = load_gan
-        self.file_name_of_performances = file_name_of_performances
+        self.path_to_performances = path_to_performances
         Paths.process_root_folder(root_folder)
     
     @staticmethod

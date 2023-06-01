@@ -8,11 +8,11 @@ from py.training.data.paths import Paths
 
 
 class GraphsPlotter:
-    def __init__(self, root_folder, total_epochs, validation_interval, file_name_of_performances):
+    def __init__(self, root_folder, total_epochs, validation_interval, path_to_performances):
         self.root_folder = root_folder
         self.total_epochs = total_epochs
         self.validation_interval = validation_interval
-        self.average_performances = np.load("{}/{}".format(self.root_folder, file_name_of_performances), allow_pickle=True)
+        self.average_performances = np.load("{}/{}".format(self.root_folder, path_to_performances), allow_pickle=True)
         self.average_performances = self.average_performances.item()
         self.train_metrics = list(self.average_performances[list(self.average_performances.keys())[0]].keys()) 
         Paths.process_root_folder(root_folder)

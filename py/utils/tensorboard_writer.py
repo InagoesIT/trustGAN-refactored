@@ -8,14 +8,14 @@ from py.performances.performances_logger import PerformancesLogger
 
 
 class TensorboardWriter:
-    def __init__(self, path_to_root_folder, total_epochs, validation_interval, file_name_of_performances):
+    def __init__(self, path_to_root_folder, total_epochs, validation_interval, path_to_performances):
         self.base_name_for_model_performances = PerformancesLogger.base_name_for_model_performances_file
         self.path_to_root_folder = path_to_root_folder
         self.total_epochs = total_epochs
         self.validation_interval = validation_interval
         self.writer = SummaryWriter(f"{self.path_to_root_folder}/tensorboard")
 
-        self.average_performances = np.load("{}/{}".format(self.path_to_root_folder, file_name_of_performances),
+        self.average_performances = np.load("{}/{}".format(self.path_to_root_folder, path_to_performances),
                                             allow_pickle=True)
         self.average_performances = self.average_performances.item()
         self.train_metrics = list(self.average_performances[list(self.average_performances.keys())[0]].keys())
