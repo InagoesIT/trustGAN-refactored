@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from py.performances.performances_logger import PerformancesLogger
+from py.training.data.paths import Paths
 
 
 class GraphsPlotter:
@@ -14,7 +15,8 @@ class GraphsPlotter:
         self.average_performances = np.load("{}/{}".format(self.root_folder, file_name_of_performances), allow_pickle=True)
         self.average_performances = self.average_performances.item()
         self.train_metrics = list(self.average_performances[list(self.average_performances.keys())[0]].keys()) 
-    
+        Paths.process_root_folder()
+
     @staticmethod
     def transform_metric_variable_to_title(metric):
         metric_title = ""

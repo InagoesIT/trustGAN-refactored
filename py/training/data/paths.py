@@ -13,14 +13,15 @@ class Paths:
         self.load_target_model = load_target_model
         self.load_gan = load_gan
         self.file_name_of_performances = file_name_of_performances
-        self.process_root_folder()
-        
-    def process_root_folder(self):
-        if self.root_folder is not None:
-            if not os.path.isdir(self.root_folder):
-                os.mkdir(self.root_folder)
+        Paths.process_root_folder()
+    
+    @staticmethod
+    def process_root_folder(root_folder):
+        if root_folder is not None:
+            if not os.path.isdir(root_folder):
+                os.mkdir(root_folder)
             for folder in ["plots", "networks", "performance-plots", "gifs"]:
-                if not os.path.isdir(os.path.join(self.root_folder, folder)):
-                    os.mkdir(os.path.join(self.root_folder, folder))
+                if not os.path.isdir(os.path.join(root_folder, folder)):
+                    os.mkdir(os.path.join(root_folder, folder))
                 else:
                     print("\nWARNING\n Folder exists")
