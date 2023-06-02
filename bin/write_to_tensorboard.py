@@ -40,7 +40,8 @@ from py.utils.tensorboard_writer import TensorboardWriter
     "--plot_only_average_performances",
     type=bool,
     is_flag=True,
-    help="The path for loading the performances",
+    help="""Plot only the average performances of this folder, 
+    preparing to merge it with another performances.""",
 )
 
 def main(

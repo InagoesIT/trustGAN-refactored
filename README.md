@@ -51,7 +51,26 @@ python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../
 You can get summary plots and gifs with:
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder ".." --path_to_dataset "data/MNIST" --nr_classes 10 --request-plots --total_epochs 100 --validation_interval 25 --file_name_of_performances "model_performances_0.npy"
+python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder ".." --path_to_dataset "data/MNIST" --nr_classes 10 --request-plots --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
+```
+
+You can get convert from npy to tensorboard with:
+If you want to plot average performances and then compare it with another model:
+
+```bash
+python ../bin/write_to_tensorboard.py --path_to_root_folder ".." --plot_only_average_performances --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
+```
+
+If you want to plot average performances and performances for other models from k-fold and compare then:
+
+```bash
+python ../bin/write_to_tensorboard.py --path_to_root_folder ".." --plot_models_together --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
+```
+
+If you want to plot average performances and performances for other models from k-fold separately:
+
+```bash
+python ../bin/write_to_tensorboard.py --path_to_root_folder ".." --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
 ```
 
 ## Contributing
