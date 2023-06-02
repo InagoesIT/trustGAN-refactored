@@ -64,7 +64,7 @@ python ../bin/write_to_tensorboard.py --path_to_root_folder ".." --plot_only_ave
 If you want to plot average performances and performances for other models from k-fold and compare then:
 
 ```bash
-python ../bin/write_to_tensorboard.py --path_to_root_folder ".." --plot_models_together --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
+python ../bin/write_to_tensorboard.py --path_to_root_folder ".." --plot_together --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
 ```
 
 If you want to plot average performances and performances for other models from k-fold separately:
