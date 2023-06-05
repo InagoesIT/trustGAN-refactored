@@ -39,10 +39,15 @@ def get_hinge_loss(outputs, targets, exponent=1, reduction=None):
             exponent: which the exponent for the maximum in the loss
             (hinge,squared hinge,cubed hinge)
     """
-    targets = Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(targets)
+    print(targets)
+    targets = [Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(targets[index]) for index in
+               range(len(targets))]
+    print(targets)
     loss = 0
-    for index in range(targets):
-        loss += pow(base=max(0, 1 / 2 - targets[index] * outputs[index]), exp=exponent)
+    for item_index in range(len(targets)):
+        for dimension in range(len(targets[0])):
+            loss += pow(base=max(0, 1 / 2 - targets[item_index][dimension] * outputs[item_index][dimension]),
+                        exp=exponent)
     return loss
 
 
