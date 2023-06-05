@@ -93,7 +93,7 @@ class TrainingPipeline:
         loss_target_model.backward()
 
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
-                                       self.networks_data.grad_clipping_coeff)
+                                       self.networks_data.grad_clipping_coefficient)
         self.networks_data.target_model_optimizer.step()
 
         _, truth = torch.max(labels, 1)
@@ -131,7 +131,7 @@ class TrainingPipeline:
         loss_target_model_on_gan = self.networks_data.target_model_loss_type(target_model_outputs, rand_labels)
         loss_target_model_on_gan.backward()
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
-                                       self.networks_data.grad_clipping_coeff)
+                                       self.networks_data.grad_clipping_coefficient)
         self.networks_data.target_model_optimizer.step()
 
         return loss_target_model_on_gan
@@ -251,7 +251,7 @@ class TrainingPipeline:
 
     def initialize_data_for_new_model(self):
         self.state.epoch = 0
-        self.networks_data = NetworksData(nr_dims=self.nr_dimensions, training_hyperparameters=self.hyperparameters, given_target_model=self.state.given_target_model)
+        self.networks_data = NetworksData(nr_dimensions=self.nr_dimensions, training_hyperparameters=self.hyperparameters, given_target_model=self.state.given_target_model)
         self.saver = Saver(device=self.state.device, modifier=self.modifier, networks_data=self.networks_data,
                            root_folder=self.paths.root_folder)
         self.performances_logger = PerformancesLogger(self)

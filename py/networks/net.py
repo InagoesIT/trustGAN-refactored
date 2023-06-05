@@ -10,8 +10,7 @@ class Net(torch.nn.Module):
         nr_classes,
         nr_channels,
         kernel_size=3,
-        fcl=8,
-        residual_units=[1, 2, 4, 8],
+        residual_units_number=7,
         is_weight_norm=True,
         is_batch_norm=False,
         dilation_coef=2,
@@ -28,6 +27,7 @@ class Net(torch.nn.Module):
             conv = torch.nn.Conv2d
 
         #
+        residual_units = [pow(base=2, exp=exponent) for exponent in range(residual_units_number)]
         chs = np.array(residual_units)
         chs = chs[chs > nr_channels]
         chs = np.append([nr_channels], chs)
@@ -51,8 +51,8 @@ class Net(torch.nn.Module):
         # This convolution is very important. Without it the target_model does not learn
         self.conv1 = conv(in_channels=chs[-1], out_channels=chs[-1], kernel_size=1)
 
-        self.lin_00 = torch.nn.Linear(in_features=chs[-1], out_features=fcl)
-        self.lin_01 = torch.nn.Linear(in_features=fcl, out_features=nr_classes)
+        self.lin_00 = torch.nn.Linear(in_features=chs[-1], out_features=residual_units[-1])
+        self.lin_01 = torch.nn.Linear(in_features=residual_units[-1], out_features=nr_classes)
 
         self.relu = torch.nn.ReLU()
         self.drp = torch.nn.Dropout(0.1)

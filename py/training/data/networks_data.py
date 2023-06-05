@@ -4,40 +4,84 @@ import torch
 import copy
 
 from py.networks.gan import Gan
-from py.performances.losses import get_softmax_cross_entropy_loss, get_combined_gan_loss
+from py.performances.losses import get_softmax_cross_entropy_loss, get_combined_gan_loss, \
+    get_hinge_loss, get_squared_hinge_loss, get_cubed_hinge_loss
 
 package = __import__("py.networks")
 
 
 class NetworksData:
-    def __init__(self, nr_dims, training_hyperparameters, given_target_model=None):
-        if given_target_model is not None:
-            self.target_model = given_target_model
-        else:
-            for importer, modname, is_pkg in pkgutil.walk_packages(package.__path__):
-                module = importer.find_module(modname).load_module(modname)
+    def __init__(self, nr_dimensions, training_hyperparameters, given_target_model=None):
+        self.training_hyperparameters = training_hyperparameters
+        self.nr_dimensions = nr_dimensions
 
-                if hasattr(module, training_hyperparameters.target_model_network_type):
-                    network = getattr(module, training_hyperparameters.target_model_network_type)
-                    self.target_model = network(
-                        nr_classes=training_hyperparameters.nr_classes,
-                        nr_channels=training_hyperparameters.nr_channels,
-                        is_batch_norm=False,
-                        is_weight_norm=True,
-                        dim=f"{nr_dims}d",
-                    )
-                    break
-        self.target_model_loss_type = get_softmax_cross_entropy_loss
+        self.target_model = None
+        self.set_target_model(given_target_model)
+        self.target_model_loss_type = None
+        self.set_target_model_loss()
         self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
 
-        self.gan = Gan(
-            nr_channels=training_hyperparameters.nr_channels,
-            is_batch_norm=True,
-            is_weight_norm=False,
-            dim=f"{nr_dims}d",
-        )
+        self.gan = None
+        self.set_gan()
         self.gan_loss_type = get_combined_gan_loss
         self.gan_optimizer = torch.optim.AdamW(self.gan.parameters(), weight_decay=0.05)
+        self.gan_scheduler = None
+        self.set_gan_scheduler()
+        self.gan_copy = copy.deepcopy(self.gan)
+
+        self.recovered_from_nan_target_model = 0
+        self.recovered_from_nan_gan = 0
+        self.grad_clipping_coefficient = 1.0
+
+    def set_target_model(self, given_target_model):
+        if given_target_model is not None:
+            self.target_model = given_target_model
+            return
+        for importer, modname, is_pkg in pkgutil.walk_packages(package.__path__):
+            module = importer.find_module(modname).load_module(modname)
+
+            if not hasattr(module, self.training_hyperparameters.target_model_network_type):
+                continue
+            network = getattr(module, self.training_hyperparameters.target_model_network_type)
+            if self.training_hyperparameters.target_model_network_type == 'Net':
+                self.target_model = network(
+                    nr_classes=self.training_hyperparameters.nr_classes,
+                    nr_channels=self.training_hyperparameters.nr_channels,
+                    is_batch_norm=False,
+                    is_weight_norm=True,
+                    dim=f"{self.nr_dimensions}d",
+                    residual_units_number=self.training_hyperparameters.target_model_residual_units_number
+                )
+            else:
+                self.target_model = network(
+                    nr_classes=self.training_hyperparameters.nr_classes,
+                    nr_channels=self.training_hyperparameters.nr_channels,
+                    is_batch_norm=False,
+                    is_weight_norm=True,
+                    dim=f"{self.nr_dimensions}d",
+                )
+            break
+
+    def set_target_model_loss(self):
+        loss = get_softmax_cross_entropy_loss
+        if self.training_hyperparameters.target_model_loss == 'hinge':
+            loss = get_hinge_loss
+        elif self.training_hyperparameters.target_model_loss == 'squared hinge':
+            loss = get_squared_hinge_loss
+        elif self.training_hyperparameters.target_model_loss == 'cubed hinge':
+            loss = get_cubed_hinge_loss
+        self.target_model_loss_type = loss
+
+    def set_gan(self):
+        self.gan = Gan(
+            nr_channels=self.training_hyperparameters.nr_channels,
+            is_batch_norm=True,
+            is_weight_norm=False,
+            dim=f"{self.nr_dimensions}d",
+            residual_units_number=self.training_hyperparameters.gan_residual_units_number
+        )
+
+    def set_gan_scheduler(self):
         self.gan_scheduler = torch.optim.lr_scheduler.CyclicLR(
             self.gan_optimizer,
             base_lr=1.0e-3,
@@ -46,7 +90,3 @@ class NetworksData:
             cycle_momentum=False,
         )
 
-        self.recovered_from_nan_target_model = 0
-        self.recovered_from_nan_gan = 0
-        self.grad_clipping_coeff = 1.0
-        self.gan_copy = copy.deepcopy(self.gan)

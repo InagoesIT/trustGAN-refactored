@@ -29,20 +29,52 @@
 import torch
 import numpy as np
 
+from py.dataset.modifier import Modifier
 
-def get_softmax_cross_entropy_loss(outputs, targets, reduction="mean"):
+
+def get_hinge_loss(outputs, targets, exponent=1, reduction=None):
+    """Arguments:
+            outputs: the output of the last level neurons
+            targets: the desired output
+            exponent: which the exponent for the maximum in the loss
+            (hinge,squared hinge,cubed hinge)
+    """
+    targets = Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(targets)
+    loss = 0
+    for index in range(targets):
+        loss += pow(base=max(0, 1 / 2 - targets[index] * outputs[index]), exp=exponent)
+    return loss
+
+
+def get_squared_hinge_loss(outputs, targets, reduction=None):
+    """Arguments:
+            outputs: the output of the last level neurons
+            targets: the desired output
+    """
+    return get_hinge_loss(outputs, targets, exponent=2)
+
+
+def get_cubed_hinge_loss(outputs, targets, reduction=None):
+    """Arguments:
+            outputs: the output of the last level neurons
+            targets: the desired output
+    """
+    return get_hinge_loss(outputs, targets, exponent=3)
+
+
+def get_softmax_cross_entropy_loss(outputs, target, reduction="mean"):
     """softmax_cross_entropy_loss:
         The confidence loss for the target model
         corresponds to L_{01} in the article
 
     Arguments:
         outputs: the output of the last level neurons
-        targets: the desired output
+        target: the desired output
         reduction: how we sum the cross entropy
     """
 
     log_probs = torch.nn.functional.log_softmax(outputs, dim=1)
-    loss = -targets * log_probs
+    loss = -target * log_probs
 
     if reduction == "sum":
         loss = loss.sum()

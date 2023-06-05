@@ -9,7 +9,7 @@ class Gan(torch.nn.Module):
         self,
         nr_channels,
         kernel_size=3,
-        residual_units=[1, 2],
+        residual_units_number=5,
         is_weight_norm=True,
         is_batch_norm=False,
         dilation_coefficient=2,
@@ -24,6 +24,7 @@ class Gan(torch.nn.Module):
             conv = torch.nn.Conv2d
 
         #
+        residual_units = [pow(base=2, exp=exponent) for exponent in range(residual_units_number)]
         chs = np.array(residual_units)
         chs = chs[chs > nr_channels]
         chs = np.append([nr_channels], chs)

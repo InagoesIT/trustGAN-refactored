@@ -116,7 +116,25 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     type=str,
     help="The label to give for memorising tensorboard data for this model",
 )
-
+@click.option(
+    '--target_model_loss',
+    type=click.Choice(['cross-entropy', 'hinge', 'squared hinge', 'cubed hinge'],
+                      case_sensitive=False),
+    default='cross-entropy',
+    help="The type of loss used for training the target model",
+)
+@click.option(
+    '--target_model_residual_units_number',
+    type=int,
+    default=7,
+    help="The number of residual units for the target model",
+)
+@click.option(
+    '--gan_residual_units_number',
+    type=int,
+    default=5,
+    help="The number of residual units for gan",
+)
 def main(
         path_to_root_folder,
         path_to_dataset,
@@ -135,9 +153,12 @@ def main(
         given_target_model,
         target_model_network_type,
         validation_interval,
-        k_fold, 
+        k_fold,
         path_to_performances,
-        model_label
+        model_label,
+        target_model_loss,
+        target_model_residual_units_number,
+        gan_residual_units_number
 ):
     if request_plots:
         produce_plots(path_to_root_folder, total_epochs, validation_interval, path_to_performances)
@@ -153,7 +174,10 @@ def main(
         proportion_target_model_alone=proportion_target_model_alone,
         target_model_network_type=target_model_network_type,
         k_fold=k_fold,
-        validation_interval=validation_interval
+        validation_interval=validation_interval,
+        target_model_loss=target_model_loss,
+        target_model_residual_units_number=target_model_residual_units_number,
+        gan_residual_units_number=gan_residual_units_number
     )
     paths = Paths(dataset=path_to_dataset, root_folder=path_to_root_folder, load_target_model=path_to_load_target_model,
                   load_gan=path_to_load_gan, path_to_performances=path_to_performances)
@@ -165,11 +189,11 @@ def main(
         state=state
     )
     training_pipeline.run()
-    
+
 
 def produce_plots(root_folder, total_epochs, validation_interval, path_to_performances):
     graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
-                                   validation_interval=validation_interval, 
+                                   validation_interval=validation_interval,
                                    path_to_performances=path_to_performances)
     graphs_plotter.plot_performances()
     graphs_plotter.plot_execution_time()
