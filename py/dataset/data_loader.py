@@ -6,7 +6,7 @@ from py.dataset.modifier import Modifier
 
 class DataLoader:
     @staticmethod
-    def get_processed_input_and_labels(path_to_dataset, nr_classes, dataset_type):
+    def get_processed_input_and_labels(path_to_dataset: str, nr_classes: int, dataset_type: str):
         x = torch.load(os.path.join(path_to_dataset, f"x_{dataset_type}.pt"))
         y = torch.load(os.path.join(path_to_dataset, f"y_{dataset_type}.pt"))
         x = x.to(torch.float)
@@ -19,13 +19,11 @@ class DataLoader:
 
         y = torch.nn.functional.one_hot(y, num_classes=nr_classes)
         y = torch.cat([y[..., i][:, None, ...] for i in range(y.shape[-1])], dim=1)
-        y_minus_one_plus_one = [Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(target) for target in y]
-        y_minus_one_plus_one = torch.LongTensor(y_minus_one_plus_one)
 
-        return x, y, y_minus_one_plus_one
+        return x, y
 
     @staticmethod
-    def get_dataloader(dataset, batch_size=64, use_cuda=True):
+    def get_dataloader(dataset: torch.utils.data.Dataset, batch_size: int = 64, use_cuda: bool = True):
         kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
         loader = torch.utils.data.DataLoader(

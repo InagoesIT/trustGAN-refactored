@@ -89,7 +89,10 @@ class TrainingPipeline:
 
         target_model_outputs = self.networks_data.target_model(inputs)
 
-        loss_target_model = self.networks_data.target_model_loss_function(target_model_outputs, labels)
+        class_labels = labels
+        if "hinge" in self.hyperparameters.target_model_loss:
+            class_labels = torch.argmax(labels, dim=1)
+        loss_target_model = self.networks_data.target_model_loss_function(target_model_outputs, class_labels)
         loss_target_model.backward()
 
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
@@ -251,7 +254,10 @@ class TrainingPipeline:
 
     def initialize_data_for_new_model(self):
         self.state.epoch = 0
-        self.networks_data = NetworksData(nr_dimensions=self.nr_dimensions, training_hyperparameters=self.hyperparameters, given_target_model=self.state.given_target_model)
+        self.networks_data = NetworksData(nr_dimensions=self.nr_dimensions,
+                                          training_hyperparameters=self.hyperparameters,
+                                          device=self.state.device,
+                                          given_target_model=self.state.given_target_model)
         self.saver = Saver(device=self.state.device, modifier=self.modifier, networks_data=self.networks_data,
                            root_folder=self.paths.root_folder)
         self.performances_logger = PerformancesLogger(self)

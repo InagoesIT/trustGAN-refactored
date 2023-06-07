@@ -3,6 +3,8 @@ import pkgutil
 import torch
 import copy
 
+import torchmetrics as torchmetrics
+
 from py.networks.gan import Gan
 from py.performances.losses import Losses
 
@@ -10,15 +12,16 @@ package = __import__("py.networks")
 
 
 class NetworksData:
-    def __init__(self, nr_dimensions, training_hyperparameters, given_target_model=None):
+    def __init__(self, nr_dimensions, training_hyperparameters, device, given_target_model=None):
         self.training_hyperparameters = training_hyperparameters
         self.nr_dimensions = nr_dimensions
+        self.device = device
 
         self.target_model = None
         self.set_target_model(given_target_model)
-        self.target_model_loss_function = NetworksData.get_loss_function_for(
+        self.target_model_loss_function = self.get_loss_function_for(
             self.training_hyperparameters.target_model_loss)
-        self.target_model_on_gan_loss_function = NetworksData.get_loss_function_for(
+        self.target_model_on_gan_loss_function = self.get_loss_function_for(
             self.training_hyperparameters.target_model_on_gan_loss)
         self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
 
@@ -63,13 +66,14 @@ class NetworksData:
                 )
             break
 
-    @staticmethod
-    def get_loss_function_for(loss_name):
+    def get_loss_function_for(self, loss_name):
         loss = Losses.get_softmax_cross_entropy_loss
         if loss_name == 'hinge':
-            loss = Losses.get_hinge_loss
+            loss = torchmetrics.classification.MulticlassHingeLoss(
+                num_classes=self.training_hyperparameters.nr_classes).to(self.device)
         elif loss_name == 'squared hinge':
-            loss = Losses.get_squared_hinge_loss
+            loss = torchmetrics.classification.MulticlassHingeLoss(
+                num_classes=self.training_hyperparameters.nr_classes, squared=True).to(self.device)
         elif loss_name == 'cubed hinge':
             loss = Losses.get_cubed_hinge_loss
         elif loss_name == 'cauchy-schwarz':

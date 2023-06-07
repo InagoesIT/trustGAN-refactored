@@ -125,7 +125,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 )
 @click.option(
     '--target_model_on_gan_loss',
-    type=click.Choice(['cross-entropy', 'hinge', 'squared hinge', 'cubed hinge'],
+    type=click.Choice(['cross-entropy'],
                       case_sensitive=False),
     default='cross-entropy',
     help="The type of loss used for training the target model on gan",

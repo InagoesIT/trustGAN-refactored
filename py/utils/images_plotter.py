@@ -47,7 +47,7 @@ class ImagesPlotter:
     def plot_best_and_worst_examples(self, loader, epoch, device):
         self.target_model.eval()
 
-        inputs, labels, _ = next(iter(loader))
+        inputs, labels = next(iter(loader))
         inputs, labels = inputs.to(device), labels.to(device)
         inputs, labels = self.modifier((inputs, labels))
         _, labels = torch.max(labels, 1)

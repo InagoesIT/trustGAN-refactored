@@ -28,6 +28,8 @@
 
 import os
 import sys
+
+import numpy
 import numpy as np
 import tempfile
 import torch
@@ -36,7 +38,8 @@ import torchvision.transforms
 
 
 class DatasetSaver:
-    def __init__(self, dataset, path_to_root_folder, splits=None, seed=42, split_data=False):
+    def __init__(self, dataset: torch.utils.data.Dataset, path_to_root_folder: str,
+                 splits: list = None, seed: int = 42, split_data: bool = False):
         # how will the dataset be split -> training, validation, testing
         self.splits = splits
         self.dataset = dataset
@@ -172,7 +175,7 @@ class DatasetSaver:
 
         return data
 
-    def get_torch_dataset_with_type(self, is_train):
+    def get_torch_dataset_with_type(self, is_train: bool):
         with tempfile.TemporaryDirectory() as tmp_dir_name:
             if self.dataset in ["OxfordIIITPet"]:
                 kwargs = {"target_types": "segmentation"}
@@ -197,7 +200,7 @@ class DatasetSaver:
 
         return {"x": x, "y": y}
 
-    def get_x_y_from_data(self, data):
+    def get_x_y_from_data(self, data: numpy.ndarray):
         # doesn't need processing
         if hasattr(data[0], "data") and hasattr(data[0], "targets"):
             x, y = data[0].data, data[0].targets
@@ -215,7 +218,7 @@ class DatasetSaver:
         return x, y
 
     @staticmethod
-    def get_data_from_loaders(data):
+    def get_data_from_loaders(data: numpy.ndarray):
         x = []
         y = []
         dataset_size = 10
@@ -241,7 +244,7 @@ class DatasetSaver:
         return x, y
 
     @staticmethod
-    def resize_x(x):
+    def resize_x(x: numpy.ndarray):
         if x[0].ndim == 4:
             x = [
                 torchvision.transforms.Resize(
@@ -253,7 +256,7 @@ class DatasetSaver:
         return torch.cat(x)
 
     @staticmethod
-    def resize_y(y):
+    def resize_y(y: numpy.ndarray):
         if y[0].ndim == 3:
             y = [
                 torchvision.transforms.Resize(
@@ -270,7 +273,7 @@ class DatasetSaver:
 
         return y
 
-    def channel_manipulations(self, x, y):
+    def channel_manipulations(self, x: numpy.ndarray, y: numpy.ndarray):
         # add a dimension m (n, m, n)
         if self.dataset in ["MNIST", "FashionMNIST"]:
             x = torch.unsqueeze(x, 1)
@@ -281,7 +284,7 @@ class DatasetSaver:
 
         return x, y
 
-    def save_data(self, data):
+    def save_data(self, data: numpy.ndarray):
         for k, v in data.items():
             os.makedirs(os.path.join(self.path_to_root_folder, self.dataset), exist_ok=True)
             for n_data, a_data in v.items():
