@@ -44,7 +44,7 @@ class Losses:
         outputs_norm = torch.sqrt(torch.sum(outputs_probability ** 2))
         targets_norm = torch.sqrt(torch.sum(targets ** 2))
         denominator = outputs_norm * targets_norm
-        divergence = - torch.log(numerator / denominator)
+        divergence = -torch.log(numerator / denominator)
         return divergence
 
     @staticmethod
@@ -55,12 +55,11 @@ class Losses:
                 exponent: which the exponent for the maximum in the loss
                 (hinge,squared hinge,cubed hinge)
         """
-        targets = [Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(targets[index]) for index in
-                   range(len(targets))]
         loss = 0
+        right_part = targets * outputs
         for item_index in range(len(targets)):
             for dimension in range(len(targets[0])):
-                loss += pow(base=max(0, 1 / 2 - targets[item_index][dimension] * outputs[item_index][dimension]),
+                loss += pow(base=max(0, 1 / 2 - right_part[item_index][dimension]),
                             exp=exponent)
         return loss
 

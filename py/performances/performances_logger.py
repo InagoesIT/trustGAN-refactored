@@ -33,7 +33,11 @@ class PerformancesLogger:
         loss = {"target_model": 0.0, "target_model_on_gan": 0.0, "gan": 0.0}
 
         for data in loader:
-            inputs, labels = data[0].to(self.training.state.device), data[1].to(self.training.state.device)
+            if self.training.hyperparameters.target_model_loss.contains("hinge"):
+                inputs, labels = data[0].to(self.training.state.device), data[1].to(self.training.state.device)
+            else:
+                inputs, labels = data[0].to(self.training.state.device), data[2].to(self.training.state.device)
+
             inputs, labels = self.training.modifier((inputs, labels))
 
             # Net on real state
@@ -58,7 +62,8 @@ class PerformancesLogger:
             gan_outputs = self.training.networks_data.gan(rand_inputs)
             target_model_outputs = self.training.networks_data.target_model(gan_outputs)
             loss["target_model_on_gan"] += (
-                self.training.networks_data.target_model_on_gan_loss_function(target_model_outputs, rand_labels, reduction="sum")
+                self.training.networks_data.target_model_on_gan_loss_function(target_model_outputs, rand_labels,
+                                                                              reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()

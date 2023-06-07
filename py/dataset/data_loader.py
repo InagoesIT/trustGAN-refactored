@@ -1,6 +1,8 @@
 import torch
 import os
 
+from py.dataset.modifier import Modifier
+
 
 class DataLoader:
     @staticmethod
@@ -17,8 +19,9 @@ class DataLoader:
 
         y = torch.nn.functional.one_hot(y, num_classes=nr_classes)
         y = torch.cat([y[..., i][:, None, ...] for i in range(y.shape[-1])], dim=1)
+        y_minus_one_plus_one = Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(y)
 
-        return x, y
+        return x, y, y_minus_one_plus_one
 
     @staticmethod
     def get_dataloader(dataset, batch_size=64, use_cuda=True):
