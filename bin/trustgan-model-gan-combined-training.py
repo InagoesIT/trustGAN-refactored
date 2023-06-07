@@ -118,10 +118,17 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 )
 @click.option(
     '--target_model_loss',
-    type=click.Choice(['cross-entropy', 'hinge', 'squared hinge', 'cubed hinge'],
+    type=click.Choice(['cross-entropy', 'hinge', 'squared hinge', 'cubed hinge', 'cauchy-schwarz'],
                       case_sensitive=False),
     default='cross-entropy',
     help="The type of loss used for training the target model",
+)
+@click.option(
+    '--target_model_on_gan_loss',
+    type=click.Choice(['cross-entropy', 'hinge', 'squared hinge', 'cubed hinge'],
+                      case_sensitive=False),
+    default='cross-entropy',
+    help="The type of loss used for training the target model on gan",
 )
 @click.option(
     '--target_model_residual_units_number',
@@ -157,6 +164,7 @@ def main(
         path_to_performances,
         model_label,
         target_model_loss,
+        target_model_on_gan_loss,
         target_model_residual_units_number,
         gan_residual_units_number
 ):
@@ -176,6 +184,7 @@ def main(
         k_fold=k_fold,
         validation_interval=validation_interval,
         target_model_loss=target_model_loss,
+        target_model_on_gan_loss=target_model_on_gan_loss,
         target_model_residual_units_number=target_model_residual_units_number,
         gan_residual_units_number=gan_residual_units_number
     )

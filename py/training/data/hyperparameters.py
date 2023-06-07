@@ -13,6 +13,7 @@ class Hyperparameters:
             k_fold=5,
             validation_interval=25,
             target_model_loss='cross-entropy',
+            target_model_on_gan_loss='cross-entropy',
             target_model_residual_units_number=7,
             gan_residual_units_number=5
     ):
@@ -28,5 +29,6 @@ class Hyperparameters:
         self.k_fold = k_fold
         self.validation_interval = validation_interval
         self.target_model_loss = target_model_loss
+        self.target_model_on_gan_loss = target_model_on_gan_loss
         self.target_model_residual_units_number = target_model_residual_units_number
         self.gan_residual_units_number = gan_residual_units_number

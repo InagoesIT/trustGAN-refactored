@@ -89,7 +89,7 @@ class TrainingPipeline:
 
         target_model_outputs = self.networks_data.target_model(inputs)
 
-        loss_target_model = self.networks_data.target_model_loss_type(target_model_outputs, labels)
+        loss_target_model = self.networks_data.target_model_loss_function(target_model_outputs, labels)
         loss_target_model.backward()
 
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
@@ -116,7 +116,7 @@ class TrainingPipeline:
 
         # load a previous gan model or use the current one
         gan_to_use = self.networks_data.gan
-        if ((explore_probability < 0.1) and len(networks) > 0):
+        if (explore_probability < 0.1) and len(networks) > 0:
             nr_network = torch.randint(low=0, high=len(networks), size=[1])
             self.networks_data.gan_copy.load_state_dict(torch.load(networks[nr_network]))
             gan_to_use = self.networks_data.gan_copy
@@ -128,7 +128,7 @@ class TrainingPipeline:
 
         # backprop the loss
         target_model_outputs = self.networks_data.target_model(gan_outputs)
-        loss_target_model_on_gan = self.networks_data.target_model_loss_type(target_model_outputs, rand_labels)
+        loss_target_model_on_gan = self.networks_data.target_model_on_gan_loss_function(target_model_outputs, rand_labels)
         loss_target_model_on_gan.backward()
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
                                        self.networks_data.grad_clipping_coefficient)

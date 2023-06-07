@@ -32,6 +32,20 @@ import numpy as np
 from py.dataset.modifier import Modifier
 
 
+def get_cauchy_schwarz_divergence(outputs, targets):
+    """Arguments:
+            outputs: the output of the last level neurons
+            targets: the desired output
+    """
+    outputs_probability = torch.nn.functional.softmax(outputs, dim=1)
+    numerator = torch.sum(outputs_probability * targets)
+    outputs_norm = torch.sqrt(torch.sum(outputs_probability ** 2))
+    targets_norm = torch.sqrt(torch.sum(targets ** 2))
+    denominator = outputs_norm * targets_norm
+    divergence = - torch.log(numerator / denominator)
+    return divergence
+
+
 def get_hinge_loss(outputs, targets, exponent=1, reduction=None):
     """Arguments:
             outputs: the output of the last level neurons
@@ -39,10 +53,8 @@ def get_hinge_loss(outputs, targets, exponent=1, reduction=None):
             exponent: which the exponent for the maximum in the loss
             (hinge,squared hinge,cubed hinge)
     """
-    print(targets)
     targets = [Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(targets[index]) for index in
                range(len(targets))]
-    print(targets)
     loss = 0
     for item_index in range(len(targets)):
         for dimension in range(len(targets[0])):

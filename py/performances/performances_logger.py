@@ -39,8 +39,8 @@ class PerformancesLogger:
             # Net on real state
             outputs = self.training.networks_data.target_model(inputs)
             loss["target_model"] += (
-                self.training.networks_data.target_model_loss_type(outputs, labels,
-                                                                   reduction="sum").detach().cpu().numpy()
+                self.training.networks_data.target_model_loss_function(outputs, labels,
+                                                                       reduction="sum").detach().cpu().numpy()
             )
             _, hard_predicted = torch.max(outputs, 1)
             _, hard_labels = torch.max(labels, 1)
@@ -57,9 +57,8 @@ class PerformancesLogger:
 
             gan_outputs = self.training.networks_data.gan(rand_inputs)
             target_model_outputs = self.training.networks_data.target_model(gan_outputs)
-
             loss["target_model_on_gan"] += (
-                self.training.networks_data.target_model_loss_type(target_model_outputs, rand_labels, reduction="sum")
+                self.training.networks_data.target_model_on_gan_loss_function(target_model_outputs, rand_labels, reduction="sum")
                 .detach()
                 .cpu()
                 .numpy()

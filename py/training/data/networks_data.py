@@ -17,8 +17,10 @@ class NetworksData:
 
         self.target_model = None
         self.set_target_model(given_target_model)
-        self.target_model_loss_type = None
-        self.set_target_model_loss()
+        self.target_model_loss_function = NetworksData.get_loss_function_for(
+            self.training_hyperparameters.target_model_loss)
+        self.target_model_on_gan_loss_function = NetworksData.get_loss_function_for(
+            self.training_hyperparameters.target_model_on_gan_loss)
         self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
 
         self.gan = None
@@ -62,15 +64,18 @@ class NetworksData:
                 )
             break
 
-    def set_target_model_loss(self):
+    @staticmethod
+    def get_loss_function_for(loss_name):
         loss = get_softmax_cross_entropy_loss
-        if self.training_hyperparameters.target_model_loss == 'hinge':
+        if loss_name == 'hinge':
             loss = get_hinge_loss
-        elif self.training_hyperparameters.target_model_loss == 'squared hinge':
+        elif loss_name == 'squared hinge':
             loss = get_squared_hinge_loss
-        elif self.training_hyperparameters.target_model_loss == 'cubed hinge':
+        elif loss_name == 'cubed hinge':
             loss = get_cubed_hinge_loss
-        self.target_model_loss_type = loss
+        elif loss_name == 'cauchy-schwarz':
+            loss = get_cubed_hinge_loss
+        return loss
 
     def set_gan(self):
         self.gan = Gan(
@@ -89,4 +94,3 @@ class NetworksData:
             step_size_up=50,
             cycle_momentum=False,
         )
-
