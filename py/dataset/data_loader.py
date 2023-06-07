@@ -19,7 +19,8 @@ class DataLoader:
 
         y = torch.nn.functional.one_hot(y, num_classes=nr_classes)
         y = torch.cat([y[..., i][:, None, ...] for i in range(y.shape[-1])], dim=1)
-        y_minus_one_plus_one = Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(y)
+        y_minus_one_plus_one = [Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(target) for target in y]
+        y_minus_one_plus_one = torch.LongTensor(y_minus_one_plus_one)
 
         return x, y, y_minus_one_plus_one
 

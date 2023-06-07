@@ -33,10 +33,10 @@ class PerformancesLogger:
         loss = {"target_model": 0.0, "target_model_on_gan": 0.0, "gan": 0.0}
 
         for data in loader:
-            if self.training.hyperparameters.target_model_loss.contains("hinge"):
-                inputs, labels = data[0].to(self.training.state.device), data[1].to(self.training.state.device)
-            else:
+            if "hinge" in self.training.hyperparameters.target_model_loss:
                 inputs, labels = data[0].to(self.training.state.device), data[2].to(self.training.state.device)
+            else:
+                inputs, labels = data[0].to(self.training.state.device), data[1].to(self.training.state.device)
 
             inputs, labels = self.training.modifier((inputs, labels))
 

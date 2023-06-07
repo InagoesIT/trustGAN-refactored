@@ -51,7 +51,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 @click.option(
     "--nr_classes", help="Number of classes in the dataset_handler", required=True, type=int
 )
-@click.option("--total_epochs", default=1, help="Number of epochs")
+@click.option("--total_epochs", default=100, help="Number of epochs")
 @click.option(
     "--nr_steps_target_model_on_gan",
     default=1,
@@ -77,7 +77,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     is_flag=True,
     help="Choose to produce plots and GIFs instead of training the network",
 )
-@click.option("--batch_size", default=64, help="Batch size")
+@click.option("--batch_size", default=512, help="Batch size")
 @click.option("--device", default="cuda:0", help="Device to run training on")
 @click.option("--verbose", default=True)
 @click.option(
@@ -94,13 +94,13 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 )
 @click.option(
     "--validation_interval",
-    default=1,
+    default=25,
     type=int,
     help="At which interval to run k-fold validation",
 )
 @click.option(
     "--k_fold",
-    default=2,
+    default=5,
     type=int,
     help="The k for performing k-fold validation",
 )

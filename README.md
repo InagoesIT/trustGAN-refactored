@@ -43,7 +43,7 @@ python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder "../
 ```
 
 ```bash
-python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder ".." --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 1 --validation_interval 1 --nr_steps_target_model_alone 1 --device "cuda:0" --k_fold 1 --gan_residual_units_number 1 --target_model_residual_units_number 1 --target_model_loss "hinge"
+python ../bin/trustgan-model-gan-combined-training.py --path_to_root_folder ".." --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 1 --validation_interval 1 --nr_steps_target_model_alone 1 --device "cuda:0" --k_fold 1 --gan_residual_units_number 1 --target_model_residual_units_number 1 --target_model_loss "hinge" --batch_size 512
 ```
 
 ## Test

@@ -31,15 +31,16 @@ import numpy as np
 
 
 class DatasetHandler(torch.utils.data.Dataset):
-    def __init__(self, data, label):
+    def __init__(self, data, label, label_minus_one_plus_one):
         self.data = data
         self.label = label
+        self.label_minus_one_plus_one = label_minus_one_plus_one
         self.nr_total_labels = np.prod(
             [el for i, el in enumerate(self.label.shape) if i != 1]
         )
 
     def __getitem__(self, i):
-        return self.data[i], self.label[i]
+        return self.data[i], self.label[i], self.label_minus_one_plus_one[i]
 
     def __len__(self):
         return self.data.shape[0]

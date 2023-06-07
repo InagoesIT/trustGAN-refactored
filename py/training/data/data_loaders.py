@@ -17,12 +17,12 @@ class DataLoaders:
         self.set_test_data_loader()        
         
     def set_validation_and_training_data_loaders(self):
-        input_items, labels = DataLoader.get_processed_input_and_labels(
+        input_items, labels, label_minus_one_plus_one = DataLoader.get_processed_input_and_labels(
                 path_to_dataset=self.path_to_dataset,
                 nr_classes=self.training_parameters.nr_classes,
                 dataset_type="trainvalidation")
 
-        dataset_handler = DatasetHandler(input_items, labels)
+        dataset_handler = DatasetHandler(input_items, labels, label_minus_one_plus_one)
         total_size = len(dataset_handler)
         fold_size = int(total_size / self.training_parameters.k_fold)
         
@@ -55,20 +55,22 @@ class DataLoaders:
 
         train_data = dataset_handler.data[train_indices]
         train_label = dataset_handler.label[train_indices]
-        train_set = DatasetHandler(train_data, train_label)
+        train_label_minus_one_plus_one = dataset_handler.label_minus_one_plus_one[train_indices]
+        train_set = DatasetHandler(train_data, train_label, train_label_minus_one_plus_one)
 
         validation_data = dataset_handler.data[validation_indices]
         validation_label = dataset_handler.label[validation_indices]
-        validation_set = DatasetHandler(validation_data, validation_label)
+        validation_label_minus_one_plus_one = dataset_handler.label_minus_one_plus_one[validation_indices]
+        validation_set = DatasetHandler(validation_data, validation_label, validation_label_minus_one_plus_one)
 
         return train_set, validation_set
 
     def set_test_data_loader(self):
-        input_items, labels = DataLoader.get_processed_input_and_labels(
+        input_items, labels, label_minus_one_plus_one = DataLoader.get_processed_input_and_labels(
             path_to_dataset=self.path_to_dataset,
             nr_classes=self.training_parameters.nr_classes,
             dataset_type="test")
-        dataset = DatasetHandler(input_items, labels)
+        dataset = DatasetHandler(input_items, labels, label_minus_one_plus_one)
 
         self.test = DataLoader.get_dataloader(
             dataset=dataset,
