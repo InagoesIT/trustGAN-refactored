@@ -4,8 +4,7 @@ import torch
 import copy
 
 from py.networks.gan import Gan
-from py.performances.losses import get_softmax_cross_entropy_loss, get_combined_gan_loss, \
-    get_hinge_loss, get_squared_hinge_loss, get_cubed_hinge_loss
+from py.performances.losses import Losses
 
 package = __import__("py.networks")
 
@@ -25,7 +24,7 @@ class NetworksData:
 
         self.gan = None
         self.set_gan()
-        self.gan_loss_type = get_combined_gan_loss
+        self.gan_loss_type = Losses.get_combined_gan_loss
         self.gan_optimizer = torch.optim.AdamW(self.gan.parameters(), weight_decay=0.05)
         self.gan_scheduler = None
         self.set_gan_scheduler()
@@ -66,15 +65,15 @@ class NetworksData:
 
     @staticmethod
     def get_loss_function_for(loss_name):
-        loss = get_softmax_cross_entropy_loss
+        loss = Losses.get_softmax_cross_entropy_loss
         if loss_name == 'hinge':
-            loss = get_hinge_loss
+            loss = Losses.get_hinge_loss
         elif loss_name == 'squared hinge':
-            loss = get_squared_hinge_loss
+            loss = Losses.get_squared_hinge_loss
         elif loss_name == 'cubed hinge':
-            loss = get_cubed_hinge_loss
+            loss = Losses.get_cubed_hinge_loss
         elif loss_name == 'cauchy-schwarz':
-            loss = get_cubed_hinge_loss
+            loss = Losses.get_cauchy_schwarz_divergence
         return loss
 
     def set_gan(self):
