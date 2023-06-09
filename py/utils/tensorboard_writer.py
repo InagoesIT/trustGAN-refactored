@@ -8,7 +8,7 @@ from py.performances.performances_logger import PerformancesLogger
 
 
 class TensorboardWriter:
-    def __init__(self, path_to_root_folder, total_epochs, validation_interval, path_to_performances):
+    def __init__(self, path_to_root_folder, total_epochs, validation_interval, path_to_performances, model_label):
         self.base_name_for_model_performances = PerformancesLogger.base_name_for_model_performances_file
         self.path_to_root_folder = path_to_root_folder
         self.total_epochs = total_epochs

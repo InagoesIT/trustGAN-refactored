@@ -49,12 +49,14 @@ def main(
         validation_interval,
         path_to_performances,
         plot_together,
-        plot_only_average_performances
+        plot_only_average_performances,
+        model_label
 ):
     tensorboard_writer = TensorboardWriter(path_to_root_folder,
                                            total_epochs,
                                            validation_interval,
-                                           path_to_performances)
+                                           path_to_performances,
+                                           model_label)
 
     if plot_only_average_performances:
         label = path_to_performances.split("_")[-1] + "_model"

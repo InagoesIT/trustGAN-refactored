@@ -262,4 +262,5 @@ class TrainingPipeline:
             self.initialize_data_for_new_model()
             self.train_model_with_index(model_index)
 
-        self.state.logger.log_execution_data(root_folder=self.paths.root_folder)
+        self.state.logger.log_execution_data(root_folder=self.paths.root_folder,
+                                             execution_data_file_name=self.execution_data_file_name)

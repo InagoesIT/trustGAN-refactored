@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from py.performances.losses import Losses
 from py.utils.images_plotter import ImagesPlotter
@@ -11,11 +10,11 @@ class PerformancesLogger:
 
     def __init__(self, training):
         self.training = training
-        self.images_plotter = ImagesPlotter(root_folder=training.paths.root_folder,
-                                            target_model=training.networks_data.target_model,
-                                            modifier=training.modifier)
-        self.writer_path = f"{self.training.paths.root_folder}/tensorboard/{self.training.state.model_label}"
-        self.writer = SummaryWriter(self.writer_path)
+        self.images_plotter = ImagesPlotter(
+            root_folder=training.paths.root_folder,
+            target_model=training.networks_data.target_model,
+            modifier=training.modifier
+        )
 
     @staticmethod
     def get_validation_epochs(epochs, validation_at, total_epochs):

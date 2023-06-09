@@ -6,7 +6,7 @@ import torch
 
 
 class Logger:
-    def __init__(self, state):
+    def __init__(self, state, ):
         self.state = state
 
     def log_execution_time(self, start_time, model_index):
@@ -27,6 +27,6 @@ class Logger:
             self.state.average_performances = np.load(path_to_performances, allow_pickle=True)
             self.state.average_performances = self.state.average_performances.item()
 
-    def log_execution_data(self, root_folder):
+    def log_execution_data(self, root_folder, execution_data_file_name):
         self.state.execution_data["memory"] = [torch.cuda.max_memory_allocated(0)]
-        np.save(self.state.execution_data_file_name.format(root_folder), self.state.execution_data)
+        np.save(execution_data_file_name.format(root_folder), self.state.execution_data)
