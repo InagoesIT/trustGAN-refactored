@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/entry_scripts/env python
 # Authors:
 #   Helion du Mas des Bourboux <helion.dumasdesbourboux'at'thalesgroup.com>
 #

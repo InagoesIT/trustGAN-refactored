@@ -23,14 +23,14 @@ We will work within `./xps/`:
 You can download in-distribution (ID) sample datasets within `data/`:
 
 ```bash
-python ../bin/download_data.py --path_to_root_folder "data/" --dataset "MNIST"
+python ../entry_scripts/download_data.py --path_to_root_folder "data/" --dataset "MNIST"
 ```
 
 You can download out-of-distribution (OOD) sample datasets within `data/`:
 
 ```bash
-python ../bin/download_data.py --path_to_root_folder "data/" --dataset "FashionMNIST"
-python ../bin/download_data.py --path_to_root_folder "data/" --dataset "CIFAR10"
+python ../entry_scripts/download_data.py --path_to_root_folder "data/" --dataset "FashionMNIST"
+python ../entry_scripts/download_data.py --path_to_root_folder "data/" --dataset "CIFAR10"
 ```
 
 ### Train a model
@@ -39,11 +39,11 @@ We will now run two models, one without TrustGAN and another with it,
 with a selected device `<device>`:
 
 ```bash
-python ../bin/train_models.py --path_to_root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 100 --batch_size 512 --proportion_target_model_alone 1 --device "cuda:0"
+python ../entry_scripts/train_models.py --path_to_root_folder "../"  --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 100 --batch_size 512 --proportion_target_model_alone 1 --device "cuda:0"
 ```
 
 ```bash
-python ../bin/train_models.py --path_to_root_folder ".." --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 1 --validation_interval 1 --nr_steps_target_model_alone 1 --device "cuda:0" --k_fold 1 --gan_residual_units_number 1 --target_model_residual_units_number 1 --target_model_loss "hinge" --batch_size 512
+python ../entry_scripts/train_models.py --path_to_root_folder ".." --path_to_dataset "data/MNIST" --nr_classes 10 --total_epochs 1 --validation_interval 1 --nr_steps_target_model_alone 1 --device "cuda:0" --k_fold 1 --gan_residual_units_number 1 --target_model_residual_units_number 1 --target_model_loss "hinge" --batch_size 512
 ```
 
 ## Test
@@ -51,26 +51,26 @@ python ../bin/train_models.py --path_to_root_folder ".." --path_to_dataset "data
 You can get summary plots and gifs with:
 
 ```bash
-python ../bin/request_plots.py --path_to_root_folder ".." --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances_gan3.npy"
+python ../entry_scripts/request_plots.py --path_to_root_folder ".." --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances_gan3.npy"
 ```
 
 You can get convert from npy to tensorboard with:
 If you want to plot average performances and then compare it with another model:
 
 ```bash
-python ../bin/write_to_tensorboard.py --path_to_root_folder "../200-nets/combined" --plot_only_average_performances --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances_gan3.npy"
+python ../entry_scripts/write_to_tensorboard.py --path_to_root_folder "../200-nets/combined" --plot_only_average_performances --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances_gan3.npy"
 ```
 
 If you want to plot average performances and performances for other models from k-fold and compare then:
 
 ```bash
-python ../bin/write_to_tensorboard.py --path_to_root_folder "../200-nets/gan3" --plot_together --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
+python ../entry_scripts/write_to_tensorboard.py --path_to_root_folder "../200-nets/gan3" --plot_together --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
 ```
 
 If you want to plot average performances and performances for other models from k-fold separately:
 
 ```bash
-python ../bin/write_to_tensorboard.py --path_to_root_folder "../100-nets/gan3" --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
+python ../entry_scripts/write_to_tensorboard.py --path_to_root_folder "../100-nets/gan3" --total_epochs 100 --validation_interval 25 --path_to_performances "average_performances.npy"
 ```
 
 ## Contributing

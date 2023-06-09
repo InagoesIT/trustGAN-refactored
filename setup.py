@@ -44,7 +44,7 @@ with open("py/_version.py") as f:
 with open("requirements.txt") as f:
     REQUIRED = f.read().splitlines()
 
-SCRIPTS = glob.glob("bin/trustgan-*")
+SCRIPTS = glob.glob("entry_scripts/*")
 
 setuptools.setup(
     name=DISTNAME,
