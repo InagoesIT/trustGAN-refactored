@@ -19,11 +19,9 @@ class NetworksData:
         self.target_model = None
         self.set_target_model(given_target_model)
         self.target_model_loss_function = Losses.get_loss_function_for(
-            loss_name=self.training_hyperparameters.target_model_loss,
-            nr_classes=self.nr_classes, device=self.device)
+            loss_name=self.training_hyperparameters.target_model_loss)
         self.target_model_on_gan_loss_function = Losses.get_loss_function_for(
-            self.training_hyperparameters.target_model_on_gan_loss,
-            nr_classes=self.nr_classes, device=self.device)
+            self.training_hyperparameters.target_model_on_gan_loss)
         self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
 
         self.gan = None

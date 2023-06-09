@@ -91,11 +91,7 @@ class TrainingPipeline:
         self.networks_data.target_model_optimizer.zero_grad()
 
         target_model_outputs = self.networks_data.target_model(inputs)
-
-        class_labels = labels
-        if "hinge" in self.hyperparameters.target_model_loss:
-            class_labels = torch.argmax(labels, dim=1)
-        loss_target_model = self.networks_data.target_model_loss_function(target_model_outputs, class_labels)
+        loss_target_model = self.networks_data.target_model_loss_function(target_model_outputs, labels)
         loss_target_model.backward()
 
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),

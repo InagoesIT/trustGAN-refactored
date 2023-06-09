@@ -40,7 +40,8 @@ class PerformancesLogger:
             outputs = self.training.networks_data.target_model(inputs)
             loss_function = self.training.networks_data.target_model_loss_function
             loss["target_model"] += (
-                    Losses.get_loss(loss_function=loss_function, outputs=outputs, targets=labels)
+                Losses.get_loss(loss_function=loss_function, loss_name=self.training.hyperparameters.target_model_loss,
+                                outputs=outputs, targets=labels)
             )
             _, hard_predicted = torch.max(outputs, 1)
             _, hard_labels = torch.max(labels, 1)
@@ -59,7 +60,9 @@ class PerformancesLogger:
             target_model_outputs = self.training.networks_data.target_model(gan_outputs)
             loss_function = self.training.networks_data.target_model_on_gan_loss_function
             loss["target_model_on_gan"] += (
-                    Losses.get_loss(loss_function=loss_function, outputs=target_model_outputs, targets=rand_labels)
+                Losses.get_loss(loss_function=loss_function,
+                                loss_name=self.training.hyperparameters.target_model_on_gan_loss,
+                                outputs=target_model_outputs, targets=rand_labels)
             )
             loss["gan"] += (
                 self.training.networks_data.gan_loss_function(rand_inputs, gan_outputs, target_model_outputs,
@@ -108,11 +111,11 @@ class PerformancesLogger:
 
     def is_one_epoch_and_wants_last_performances(self):
         return self.training.hyperparameters.total_epochs == 1 and \
-               len(self.training.state.model_performances["training"]) > 0
+            len(self.training.state.model_performances["training"]) > 0
 
     def average_performances_were_calculated(self):
         return self.training.state.epoch == 0 and \
-               self.training.paths.performances is not None
+            self.training.paths.performances is not None
 
     def set_performances_for_dataset(self, accuracies, losses, model_index, dataset_type, epoch, add_to_average):
         for metric, metric_name in [(accuracies, "accuracy"), (losses, "loss")]:

@@ -28,31 +28,29 @@
 
 import torch
 import numpy as np
-import torchmetrics
+
+from py.dataset.modifier import Modifier
 
 
 class Losses:
     @staticmethod
-    def get_loss_function_for(loss_name, nr_classes, device):
+    def get_loss_function_for(loss_name):
         loss = Losses.get_softmax_cross_entropy_loss
         if loss_name == 'hinge':
-            loss = torchmetrics.classification.MulticlassHingeLoss(
-                num_classes=nr_classes, multiclass_mode='one-vs-all').to(device)
+            loss = Losses.get_hinge_loss
         elif loss_name == 'squared hinge':
-            loss = torchmetrics.classification.MulticlassHingeLoss(
-                num_classes=nr_classes, multiclass_mode='one-vs-all', squared=True).to(device)
+            loss = Losses.get_squared_hinge_loss
+        elif loss_name == 'cubed hinge':
+            loss = Losses.get_cubed_hinge_loss
         elif loss_name == 'cauchy-schwarz':
             loss = Losses.get_cauchy_schwarz_divergence
         return loss
 
     @staticmethod
-    def get_loss(loss_function: callable, outputs, targets, reduction="sum"):
-        if "cross" in loss_function.__name__:
+    def get_loss(loss_function: callable, loss_name, outputs, targets, reduction="sum"):
+        if "cross" in loss_name:
             return loss_function(outputs, targets, reduction=reduction).detach().cpu().numpy()
-        if "hinge" in loss_function.__name__:
-            class_labels = torch.argmax(targets, dim=1)
-            return loss_function(outputs, class_labels).item()
-        return loss_function(outputs, targets)
+        return loss_function(outputs, targets).item()
 
     @staticmethod
     def get_cauchy_schwarz_divergence(outputs, targets):
@@ -76,12 +74,9 @@ class Losses:
                 exponent: which the exponent for the maximum in the loss
                 (hinge,squared hinge,cubed hinge)
         """
-        loss = 0
-        right_part = targets * outputs
-        for item_index in range(len(targets)):
-            for dimension in range(len(targets[0])):
-                loss += pow(base=max(0, 1 / 2 - right_part[item_index][dimension]),
-                            exp=exponent)
+        targets = Modifier.convert_from_one_hot_to_minus_one_plus_one_encoding(targets)
+        right_part = torch.mul(outputs, targets)
+        loss = torch.clamp(0.5 - right_part, min=0.0).pow(exponent).sum()
         return loss
 
     @staticmethod

@@ -7,7 +7,8 @@ class Modifier:
 
     @staticmethod
     def convert_from_one_hot_to_minus_one_plus_one_encoding(labels):
-        return [-1 if item == 0 else 1 for item in labels]
+        minus_one_plus_one = torch.where(labels == 0, torch.tensor(-1), torch.tensor(1))
+        return minus_one_plus_one
 
     def convert_to_nr_channels(self, x):
         # select a channel randomly
