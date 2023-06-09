@@ -3,11 +3,9 @@
 /.idea
 /trustgan.egg-info
 run.ipynb
-.*.pyc
 .*checkpoint.*
 .ipynb_checkpoints/compile-checkpoint.txt
 .ipynb_checkpoints/README-checkpoint.md
-*.pyc
 *.pyc
 *checkpoint.*
 *.tfevents.*
