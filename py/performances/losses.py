@@ -28,13 +28,34 @@
 
 import torch
 import numpy as np
-
-from py.dataset.modifier import Modifier
+import torchmetrics
 
 
 class Losses:
     @staticmethod
-    def get_cauchy_schwarz_divergence(outputs, targets, reduction=None):
+    def get_loss_function_for(loss_name, nr_classes, device):
+        loss = Losses.get_softmax_cross_entropy_loss
+        if loss_name == 'hinge':
+            loss = torchmetrics.classification.MulticlassHingeLoss(
+                num_classes=nr_classes, multiclass_mode='one-vs-all').to(device)
+        elif loss_name == 'squared hinge':
+            loss = torchmetrics.classification.MulticlassHingeLoss(
+                num_classes=nr_classes, multiclass_mode='one-vs-all', squared=True).to(device)
+        elif loss_name == 'cauchy-schwarz':
+            loss = Losses.get_cauchy_schwarz_divergence
+        return loss
+
+    @staticmethod
+    def get_loss(loss_function: callable, outputs, targets, reduction="sum"):
+        if "cross" in loss_function.__name__:
+            return loss_function(outputs, targets, reduction=reduction).detach().cpu().numpy()
+        if "hinge" in loss_function.__name__:
+            class_labels = torch.argmax(targets, dim=1)
+            return loss_function(outputs, class_labels).item()
+        return loss_function(outputs, targets)
+
+    @staticmethod
+    def get_cauchy_schwarz_divergence(outputs, targets):
         """Arguments:
                 outputs: the output of the last level neurons
                 targets: the desired output
@@ -48,7 +69,7 @@ class Losses:
         return divergence
 
     @staticmethod
-    def get_hinge_loss(outputs, targets, exponent=1, reduction=None):
+    def get_hinge_loss(outputs, targets, exponent=1):
         """Arguments:
                 outputs: the output of the last level neurons
                 targets: the desired output
@@ -64,7 +85,7 @@ class Losses:
         return loss
 
     @staticmethod
-    def get_squared_hinge_loss(outputs, targets, reduction=None):
+    def get_squared_hinge_loss(outputs, targets):
         """Arguments:
                 outputs: the output of the last level neurons
                 targets: the desired output
@@ -72,7 +93,7 @@ class Losses:
         return Losses.get_hinge_loss(outputs, targets, exponent=2)
 
     @staticmethod
-    def get_cubed_hinge_loss(outputs, targets, reduction=None):
+    def get_cubed_hinge_loss(outputs, targets):
         """Arguments:
                 outputs: the output of the last level neurons
                 targets: the desired output
@@ -80,19 +101,19 @@ class Losses:
         return Losses.get_hinge_loss(outputs, targets, exponent=3)
 
     @staticmethod
-    def get_softmax_cross_entropy_loss(outputs, target, reduction="mean"):
+    def get_softmax_cross_entropy_loss(outputs, targets, reduction="mean"):
         """softmax_cross_entropy_loss:
             The confidence loss for the target model
             corresponds to L_{01} in the article
 
         Arguments:
             outputs: the output of the last level neurons
-            target: the desired output
+            targets: the desired output
             reduction: how we sum the cross entropy
         """
 
         log_probs = torch.nn.functional.log_softmax(outputs, dim=1)
-        loss = -target * log_probs
+        loss = -targets * log_probs
 
         if reduction == "sum":
             loss = loss.sum()

@@ -31,11 +31,9 @@
 import os
 import click
 
-from py.training.data.paths import Paths
-from py.training.data.state import State
-from py.utils.graphs_plotter import GraphsPlotter
-from py.utils.images_plotter import ImagesPlotter
-from py.training.data.hyperparameters import Hyperparameters
+from py.training.components.paths import Paths
+from py.training.components.state import State
+from py.training.components.hyperparameters import Hyperparameters
 from py.training.training_pipeline import TrainingPipeline
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -44,21 +42,36 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 @click.command(
     context_settings={"show_default": True, "help_option_names": ["_h", "--help"]}
 )
-@click.option("--path_to_root_folder", help="Path where to save results", required=True)
 @click.option(
-    "--path_to_dataset", help="Path to the dataset_handler to run training on", required=True
+    "--path_to_root_folder",
+    help="Path where to save results",
+    required=True
 )
 @click.option(
-    "--nr_classes", help="Number of classes in the dataset_handler", required=True, type=int
+    "--path_to_dataset",
+    help="Path to the dataset_handler to run training on",
+    required=True
 )
-@click.option("--total_epochs", default=100, help="Number of epochs")
+@click.option(
+    "--nr_classes",
+    help="Number of classes in the dataset_handler",
+    required=True,
+    type=int
+)
+@click.option(
+    "--total_epochs",
+    default=100,
+    help="Number of epochs"
+)
 @click.option(
     "--nr_steps_target_model_on_gan",
     default=1,
     help="Number of steps to run the Model against the GAN per Model step",
 )
 @click.option(
-    "--nr_steps_gan", default=1, help="Number of steps to run the GAN per Model step"
+    "--nr_steps_gan",
+    default=1,
+    help="Number of steps to run the GAN per Model step"
 )
 @click.option(
     "--nr_steps_target_model_alone",
@@ -70,18 +83,32 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     default=0.0,
     help="Proportion of the epochs where only the model is learning",
 )
-@click.option("--path_to_load_target_model", default=None, help="Path to load a model from")
-@click.option("--path_to_load_gan", default=None, help="Path to load a GAN from")
 @click.option(
-    "--request-plots",
-    is_flag=True,
-    help="Choose to produce plots and GIFs instead of training the network",
+    "--path_to_load_target_model",
+    default=None,
+    help="Path to load a model from"
 )
-@click.option("--batch_size", default=512, help="Batch size")
-@click.option("--device", default="cuda:0", help="Device to run training on")
-@click.option("--verbose", default=True)
 @click.option(
-    "--given_target_model",
+    "--path_to_load_gan",
+    default=None,
+    help="Path to load a GAN from"
+)
+@click.option(
+    "--batch_size",
+    default=512,
+    help="Batch size"
+)
+@click.option(
+    "--device",
+    default="cuda:0",
+    help="Device to run training on"
+)
+@click.option(
+    "--verbose",
+    default=True
+)
+@click.option(
+    "--path_to_load_full_given_target_model",
     default=None,
     type=str,
     help="Path where to load a trained network for the given task",
@@ -111,30 +138,24 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     help="The path for loading the performances",
 )
 @click.option(
-    "--model_label",
-    default="",
-    type=str,
-    help="The label to give for memorising tensorboard data for this model",
-)
-@click.option(
     '--target_model_loss',
     type=click.Choice(['cross-entropy', 'hinge', 'squared hinge', 'cubed hinge', 'cauchy-schwarz'],
                       case_sensitive=False),
     default='cross-entropy',
-    help="The type of loss used for training the target model",
+    help="The type of loss used for training the targets model",
 )
 @click.option(
     '--target_model_on_gan_loss',
     type=click.Choice(['cross-entropy'],
                       case_sensitive=False),
     default='cross-entropy',
-    help="The type of loss used for training the target model on gan",
+    help="The type of loss used for training the targets model on gan",
 )
 @click.option(
     '--target_model_residual_units_number',
     type=int,
     default=7,
-    help="The number of residual units for the target model",
+    help="The number of residual units for the targets model",
 )
 @click.option(
     '--gan_residual_units_number',
@@ -153,27 +174,20 @@ def main(
         proportion_target_model_alone,
         path_to_load_target_model,
         path_to_load_gan,
-        request_plots,
         batch_size,
         device,
         verbose,
-        given_target_model,
+        path_to_load_full_given_target_model,
         target_model_network_type,
         validation_interval,
         k_fold,
         path_to_performances,
-        model_label,
         target_model_loss,
         target_model_on_gan_loss,
         target_model_residual_units_number,
         gan_residual_units_number
 ):
-    if request_plots:
-        produce_plots(path_to_root_folder, total_epochs, validation_interval, path_to_performances)
-        return
-
     hyperparameters = Hyperparameters(
-        nr_classes=nr_classes,
         batch_size=batch_size,
         total_epochs=total_epochs,
         nr_steps_target_model_on_gan=nr_steps_target_model_on_gan,
@@ -189,27 +203,19 @@ def main(
         gan_residual_units_number=gan_residual_units_number
     )
     paths = Paths(dataset=path_to_dataset, root_folder=path_to_root_folder, load_target_model=path_to_load_target_model,
-                  load_gan=path_to_load_gan, path_to_performances=path_to_performances)
-    state = State(given_target_model=given_target_model, verbose=verbose, device_name=device, model_label=model_label)
+                  load_gan=path_to_load_gan, performances=path_to_performances)
+    state = State(
+        nr_classes=nr_classes,
+        given_target_model=path_to_load_full_given_target_model,
+        verbose=verbose,
+        device_name=device)
 
     training_pipeline = TrainingPipeline(
         hyperparameters=hyperparameters,
         paths=paths,
         state=state
     )
-    training_pipeline.run()
-
-
-def produce_plots(root_folder, total_epochs, validation_interval, path_to_performances):
-    graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
-                                   validation_interval=validation_interval,
-                                   path_to_performances=path_to_performances)
-    graphs_plotter.plot_performances()
-    graphs_plotter.plot_execution_time()
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_is_best_step_*.png")
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_not_is_best_step_*.png")
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_min_step_*.png")
-    ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_true_image_max_step_*.png")
+    training_pipeline.train()
 
 
 if __name__ == "__main__":

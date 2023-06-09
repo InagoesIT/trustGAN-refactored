@@ -38,8 +38,7 @@ import torchvision.transforms
 
 
 class DatasetSaver:
-    def __init__(self, dataset: torch.utils.data.Dataset, path_to_root_folder: str,
-                 splits: list = None, seed: int = 42, split_data: bool = False):
+    def __init__(self, dataset, path_to_root_folder, splits=None, seed=42, split_data=False):
         # how will the dataset be split -> training, validation, testing
         self.splits = splits
         self.dataset = dataset
@@ -64,6 +63,7 @@ class DatasetSaver:
 
         self.splits = np.array(self.splits)
 
+    @staticmethod
     def set_seeds(seed):
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -118,7 +118,6 @@ class DatasetSaver:
 
     def get_torch_dataset(self):
         """ Returns data with train, valid and test keys"""
-
         data = self.get_train_and_validation()
 
         # Test
@@ -200,7 +199,7 @@ class DatasetSaver:
 
         return {"x": x, "y": y}
 
-    def get_x_y_from_data(self, data: numpy.ndarray):
+    def get_x_y_from_data(self, data):
         # doesn't need processing
         if hasattr(data[0], "data") and hasattr(data[0], "targets"):
             x, y = data[0].data, data[0].targets
@@ -218,7 +217,7 @@ class DatasetSaver:
         return x, y
 
     @staticmethod
-    def get_data_from_loaders(data: numpy.ndarray):
+    def get_data_from_loaders(data):
         x = []
         y = []
         dataset_size = 10
@@ -244,7 +243,7 @@ class DatasetSaver:
         return x, y
 
     @staticmethod
-    def resize_x(x: numpy.ndarray):
+    def resize_x(x):
         if x[0].ndim == 4:
             x = [
                 torchvision.transforms.Resize(
@@ -256,7 +255,7 @@ class DatasetSaver:
         return torch.cat(x)
 
     @staticmethod
-    def resize_y(y: numpy.ndarray):
+    def resize_y(y):
         if y[0].ndim == 3:
             y = [
                 torchvision.transforms.Resize(
@@ -284,7 +283,7 @@ class DatasetSaver:
 
         return x, y
 
-    def save_data(self, data: numpy.ndarray):
+    def save_data(self, data):
         for k, v in data.items():
             os.makedirs(os.path.join(self.path_to_root_folder, self.dataset), exist_ok=True)
             for n_data, a_data in v.items():

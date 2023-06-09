@@ -1,12 +1,18 @@
+import os
+import time
+
+import numpy as np
 import torch
+
+from py.utils.logger import Logger
 
 
 class State:
-    def __init__(self, given_target_model=None, verbose=True, device_name=None, seed=42, model_label=""):
+    def __init__(self, nr_classes, given_target_model=None, verbose=True, device_name=None, seed=42):
+        self.nr_classes = nr_classes
         self.given_target_model = given_target_model
         self.verbose = verbose
         self.epoch = 0
-        self.model_label = model_label
         self.average_performances = None
         self.model_performances = None
         self.best_loss = None
@@ -16,6 +22,8 @@ class State:
         self.device = None
         self.set_device(device_name=device_name)
         self.initialize_performances()
+        self.logger = Logger(self)
+        self.nr_dimensions = 0
 
     def set_device(self, device_name=None):
         if device_name is None:
@@ -29,11 +37,11 @@ class State:
             print(f"Device = {device}, {device_name}")
 
         self.device = device
-    
+
     def initialize_performances(self):
         self.average_performances = {"training": {}, "validation": {}}
         self.best_loss = float("inf")
         self.initialize_model_performances()
 
     def initialize_model_performances(self):
-        self.model_performances = {"training": {}, "validation": {}}   
+        self.model_performances = {"training": {}, "validation": {}}

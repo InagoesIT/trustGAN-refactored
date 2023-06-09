@@ -1,8 +1,6 @@
 import torch
 import os
 
-from py.dataset.modifier import Modifier
-
 
 class DataLoader:
     @staticmethod
@@ -23,7 +21,7 @@ class DataLoader:
         return x, y
 
     @staticmethod
-    def get_dataloader(dataset: torch.utils.data.Dataset, batch_size: int = 64, use_cuda: bool = True):
+    def get_dataloader(dataset, batch_size=64, use_cuda=True):
         kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
         loader = torch.utils.data.DataLoader(

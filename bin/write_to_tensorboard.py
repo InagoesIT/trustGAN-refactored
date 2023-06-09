@@ -43,7 +43,6 @@ from py.utils.tensorboard_writer import TensorboardWriter
     help="""Plot only the average performances of this folder, 
     preparing to merge it with another performances.""",
 )
-
 def main(
         path_to_root_folder,
         total_epochs,

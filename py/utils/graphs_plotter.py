@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from py.performances.performances_logger import PerformancesLogger
-from py.training.data.paths import Paths
+from py.training.components.paths import Paths
 
 
 class GraphsPlotter:

@@ -1,13 +1,14 @@
 import torch
 import numpy as np
 
-from py.networks.res_net_unit import ResNetUnit
+from py.networks.residual_network_unit import ResidualNetworkUnit
 
 
 class Gan(torch.nn.Module):
     def __init__(
         self,
         nr_channels,
+        device,
         kernel_size=3,
         residual_units_number=5,
         is_weight_norm=True,
@@ -16,14 +17,13 @@ class Gan(torch.nn.Module):
         dim="2d",
     ):
         super(Gan, self).__init__()
+        self.device = device
 
-        #
         if dim == "1d":
             conv = torch.nn.Conv1d
         elif dim == "2d":
             conv = torch.nn.Conv2d
 
-        #
         residual_units = [pow(base=2, exp=exponent) for exponent in range(residual_units_number)]
         chs = np.array(residual_units)
         chs = chs[chs > nr_channels]
@@ -32,10 +32,11 @@ class Gan(torch.nn.Module):
 
         self.layers = torch.nn.ModuleList(
             [
-                ResNetUnit(
+                ResidualNetworkUnit(
                     in_channels=chs[i],
                     out_channels=chs[i + 1],
                     kernel_size=kernel_size,
+                    device=self.device,
                     dilation=dilation_coefficient ** i,
                     is_weight_norm=is_weight_norm,
                     is_batch_norm=is_batch_norm,

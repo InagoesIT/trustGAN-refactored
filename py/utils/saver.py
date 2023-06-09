@@ -23,7 +23,7 @@ class Saver:
 
     def save_model_data(self, model_index=None):
         model_index_text = ""
-        if model_index != None:
+        if model_index is not None:
             model_index_text = f"_{model_index}"
         torch.save(self.networks_data.target_model.state_dict(),
                     "{}/target_model{}.pth".format(self.root_folder, model_index_text))

@@ -8,14 +8,14 @@ class LModCNNResNetRelu(torch.nn.Module):
         self.nr_classes = nr_classes
 
         nbc = 8
-        self.conv00 = torch.nn.Conv1d(in_channels=2, out_channels=nbc, kernel_size=1)
-        self.conv01 = torch.nn.Conv1d(
+        self.convolution00 = torch.nn.Conv1d(in_channels=2, out_channels=nbc, kernel_size=1)
+        self.convolution01 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
         )
-        self.conv02 = torch.nn.Conv1d(
+        self.convolution02 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
@@ -23,16 +23,16 @@ class LModCNNResNetRelu(torch.nn.Module):
         )
 
         nbc = 16
-        self.conv10 = torch.nn.Conv1d(
+        self.convolution10 = torch.nn.Conv1d(
             in_channels=nbc // 2, out_channels=nbc, kernel_size=1
         )
-        self.conv11 = torch.nn.Conv1d(
+        self.convolution11 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
         )
-        self.conv12 = torch.nn.Conv1d(
+        self.convolution12 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
@@ -40,16 +40,16 @@ class LModCNNResNetRelu(torch.nn.Module):
         )
 
         nbc = 32
-        self.conv20 = torch.nn.Conv1d(
+        self.convolution20 = torch.nn.Conv1d(
             in_channels=nbc // 2, out_channels=nbc, kernel_size=1
         )
-        self.conv21 = torch.nn.Conv1d(
+        self.convolution21 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
         )
-        self.conv22 = torch.nn.Conv1d(
+        self.convolution22 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
@@ -57,60 +57,60 @@ class LModCNNResNetRelu(torch.nn.Module):
         )
 
         nbc = 64
-        self.conv30 = torch.nn.Conv1d(
+        self.convolution30 = torch.nn.Conv1d(
             in_channels=nbc // 2, out_channels=nbc, kernel_size=1
         )
-        self.conv31 = torch.nn.Conv1d(
+        self.convolution31 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
         )
-        self.conv32 = torch.nn.Conv1d(
+        self.convolution32 = torch.nn.Conv1d(
             in_channels=nbc,
             out_channels=nbc,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
         )
 
-        self.lin_1 = torch.nn.Linear(in_features=nbc, out_features=256)
-        self.lin_2 = torch.nn.Linear(in_features=256, out_features=self.nr_classes)
+        self.linear_layer1 = torch.nn.Linear(in_features=nbc, out_features=256)
+        self.linear_layer2 = torch.nn.Linear(in_features=256, out_features=self.nr_classes)
 
-        self.drp1 = torch.nn.Dropout()
+        self.dropout = torch.nn.Dropout()
 
         self.relu = torch.nn.ReLU()
 
     def forward(self, x):
 
-        x = self.relu(self.conv00(x))
+        x = self.relu(self.convolution00(x))
         y = x.clone()
-        x = self.relu(self.conv01(x))
-        x = self.conv02(x)
+        x = self.relu(self.convolution01(x))
+        x = self.convolution02(x)
         x = self.relu(x + y)
 
-        x = self.relu(self.conv10(x))
+        x = self.relu(self.convolution10(x))
         y = x.clone()
-        x = self.relu(self.conv11(x))
-        x = self.conv12(x)
+        x = self.relu(self.convolution11(x))
+        x = self.convolution12(x)
         x = self.relu(x + y)
 
-        x = self.relu(self.conv20(x))
+        x = self.relu(self.convolution20(x))
         y = x.clone()
-        x = self.relu(self.conv21(x))
-        x = self.conv22(x)
+        x = self.relu(self.convolution21(x))
+        x = self.convolution22(x)
         x = self.relu(x + y)
 
-        x = self.relu(self.conv30(x))
+        x = self.relu(self.convolution30(x))
         y = x.clone()
-        x = self.relu(self.conv31(x))
-        x = self.conv32(x)
+        x = self.relu(self.convolution31(x))
+        x = self.convolution32(x)
         x = self.relu(x + y)
 
         x = x.mean(axis=-1)
 
-        x = self.relu(self.lin_1(x))
-        x = self.drp1(x)
+        x = self.relu(self.linear_layer1(x))
+        x = self.dropout(x)
 
-        x = self.lin_2(x)
+        x = self.linear_layer2(x)
 
         return x

@@ -1,7 +1,6 @@
 class Hyperparameters:
     def __init__(
             self,
-            nr_classes,
             batch_size=512,
             total_epochs=100,
             nr_steps_target_model_on_gan=1,
@@ -17,7 +16,6 @@ class Hyperparameters:
             target_model_residual_units_number=7,
             gan_residual_units_number=5
     ):
-        self.nr_classes = nr_classes
         self.batch_size = batch_size
         self.total_epochs = total_epochs
         self.nr_steps_target_model_gan = nr_steps_target_model_on_gan

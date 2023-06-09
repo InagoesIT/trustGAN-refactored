@@ -33,12 +33,12 @@ import time
 
 from py.dataset.modifier import Modifier
 from py.performances.performances_logger import PerformancesLogger
-from py.training.data.networks_data import NetworksData
-from py.training.data.state import State
-from py.training.data.data_loaders import DataLoaders
-from py.training.data.hyperparameters import Hyperparameters
+from py.training.components.networks_data import NetworksData
+from py.training.components.state import State
+from py.training.components.data_loaders import DataLoaders
+from py.training.components.hyperparameters import Hyperparameters
 from py.training.network_nan_recovery import NetworkNaNRecovery
-from py.training.data.paths import Paths
+from py.training.components.paths import Paths
 from py.utils.saver import Saver
 
 
@@ -57,31 +57,34 @@ class TrainingPipeline:
         self.networks_data = None
 
         TrainingPipeline.set_seeds(state.seed)
-        self.data_loaders = DataLoaders(
-            path_to_dataset=paths.dataset, training_parameters=hyperparameters)
+        self.data_loaders = DataLoaders(path_to_dataset=paths.dataset,
+                                        nr_classes=self.state.nr_classes,
+                                        training_hyperparameters=hyperparameters)
         self.performances_logger = None
 
         self.modifier = Modifier(nr_channels=self.hyperparameters.nr_channels)
-        self.nr_dimensions = self.modifier(next(iter(self.data_loaders.validation[0])))[0].ndim - 2
+        self.state.nr_dimensions = self.modifier(next(iter(self.data_loaders.validation[0])))[0].ndim - 2
         self.hyperparameters.nr_channels = self.modifier(next(iter(self.data_loaders.validation[0])))[0].shape[1]
-        print(f"INFO: Found {self.nr_dimensions} dimensions")
+        print(f"INFO: Found {self.state.nr_dimensions} dimensions")
         print(f"INFO: Found {self.hyperparameters.nr_channels} channels")
 
     @staticmethod
-    def set_seeds(seed: int):
+    def set_seeds(seed):
         np.random.seed(seed)
         torch.manual_seed(seed)
 
-    def load_models_if_present(self):
-        for model, path_to_load in [
-            (self.networks_data.target_model, self.paths.load_target_model),
-            (self.networks_data.gan, self.paths.load_gan),
-        ]:
-            model = model.to(self.state.device)
+    def get_networks_outputs(self, loader):
+        self.networks_data.target_model.eval()
+        self.networks_data.gan.eval()
+        dims = list(self.modifier(next(iter(loader)))[0].shape)
+        rand_inputs = torch.rand(dims, device=self.state.device)
 
-            if path_to_load is not None:
-                ld = torch.load(path_to_load, map_location=self.state.device)
-                model.load_state_dict(ld)
+        gan_outputs = self.networks_data.gan(rand_inputs)
+        target_model_outputs = self.networks_data.target_model(gan_outputs)
+        self.networks_data.target_model.train()
+        self.networks_data.gan.train()
+
+        return gan_outputs, target_model_outputs
 
     def target_model_train(self, inputs, labels):
         self.networks_data.target_model.train()
@@ -96,7 +99,7 @@ class TrainingPipeline:
         loss_target_model.backward()
 
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
-                                       self.networks_data.grad_clipping_coefficient)
+                                       self.networks_data.gradient_clipping_coefficient)
         self.networks_data.target_model_optimizer.step()
 
         _, truth = torch.max(labels, 1)
@@ -111,7 +114,7 @@ class TrainingPipeline:
 
         rand_inputs = torch.rand(inputs_shape, device=self.state.device)
         rand_labels = (
-                1.0 / self.hyperparameters.nr_classes * torch.ones(labels_shape, device=self.state.device)
+                1.0 / self.state.nr_classes * torch.ones(labels_shape, device=self.state.device)
         )
 
         explore_probability = torch.rand(1)
@@ -131,26 +134,14 @@ class TrainingPipeline:
 
         # backprop the loss
         target_model_outputs = self.networks_data.target_model(gan_outputs)
-        loss_target_model_on_gan = self.networks_data.target_model_on_gan_loss_function(target_model_outputs, rand_labels)
+        loss_target_model_on_gan = self.networks_data.target_model_on_gan_loss_function(target_model_outputs,
+                                                                                        rand_labels)
         loss_target_model_on_gan.backward()
         torch.nn.utils.clip_grad_norm_(self.networks_data.target_model.parameters(),
-                                       self.networks_data.grad_clipping_coefficient)
+                                       self.networks_data.gradient_clipping_coefficient)
         self.networks_data.target_model_optimizer.step()
 
         return loss_target_model_on_gan
-
-    def get_networks_outputs(self, loader):
-        self.networks_data.target_model.eval()
-        self.networks_data.gan.eval()
-        dims = list(self.modifier(next(iter(loader)))[0].shape)
-        rand_inputs = torch.rand(dims, device=self.state.device)
-
-        gan_outputs = self.networks_data.gan(rand_inputs)
-        target_model_outputs = self.networks_data.target_model(gan_outputs)
-        self.networks_data.target_model.train()
-        self.networks_data.gan.train()
-
-        return gan_outputs, target_model_outputs
 
     def gan_train(self, inputs_shape):
         self.networks_data.gan.train()
@@ -163,7 +154,7 @@ class TrainingPipeline:
         target_model_outputs = self.networks_data.target_model(gan_outputs)
         self.networks_data.target_model.train()
 
-        loss_gan = self.networks_data.gan_loss_type(rand_inputs.float(), gan_outputs, target_model_outputs)
+        loss_gan = self.networks_data.gan_loss_function(rand_inputs.float(), gan_outputs, target_model_outputs)
         loss_gan.backward()
 
         self.state.loss_gan = loss_gan.item()
@@ -192,7 +183,7 @@ class TrainingPipeline:
     def is_gan_training_epoch(self):
         proportion_target_model_alone = torch.rand(1)
         return self.state.epoch >= self.hyperparameters.nr_steps_target_model_alone \
-            and proportion_target_model_alone > self.hyperparameters.proportion_target_model_alone
+               and proportion_target_model_alone > self.hyperparameters.proportion_target_model_alone
 
     def train_models(self, model_index):
         for i, data in enumerate(self.data_loaders.train[model_index]):
@@ -221,13 +212,6 @@ class TrainingPipeline:
                     f"Accuracies: target model = {accuracies_target_model:6.3f}"
                 )
 
-    def log_execution_time(self, start_time, model_index):
-        if model_index == 0:
-            self.state.execution_data["time"] += [(time.time() - start_time) / 60]
-        else:
-            self.state.execution_data["time"][self.state.epoch] += (time.time() - start_time) / 60
-            self.state.execution_data["time"][self.state.epoch] /= 2
-
     def set_training_mode(self):
         self.networks_data.target_model.train()
         self.networks_data.gan.train()
@@ -244,8 +228,8 @@ class TrainingPipeline:
             self.set_training_mode()
             self.train_models(model_index)
 
-            self.log_execution_time(start_time, model_index)
-        
+            self.state.logger.log_execution_time(start_time, model_index)
+
         self.saver.save_model_data(model_index=model_index)
 
         if self.state.loss_gan != -1.0:
@@ -254,44 +238,28 @@ class TrainingPipeline:
 
     def initialize_data_for_new_model(self):
         self.state.epoch = 0
-        self.networks_data = NetworksData(nr_dimensions=self.nr_dimensions,
+        self.networks_data = NetworksData(nr_dimensions=self.state.nr_dimensions,
                                           training_hyperparameters=self.hyperparameters,
                                           device=self.state.device,
-                                          given_target_model=self.state.given_target_model)
+                                          given_target_model=self.state.given_target_model,
+                                          nr_classes=self.state.nr_classes)
         self.saver = Saver(device=self.state.device, modifier=self.modifier, networks_data=self.networks_data,
                            root_folder=self.paths.root_folder)
         self.performances_logger = PerformancesLogger(self)
 
         self.networks_data.gan = self.networks_data.gan.to(self.state.device)
-        self.load_models_if_present()
+        self.networks_data.load_models_if_present(path_to_load_target_model=self.paths.load_target_model,
+                                                  path_to_load_gan=self.paths.load_gan)
         self.state.initialize_model_performances()
 
-    def load_model_performances(self):
-        if os.path.exists(self.paths.path_to_performances):
-            self.state.model_performances = np.load(self.paths.path_to_performances, allow_pickle=True)
-            self.state.model_performances = self.state.average_performances.item()
-
-    def load_logs(self):
-        if self.paths.path_to_performances is None:
-            return
-        execution_data_path = self.execution_data_file_name.format(self.paths.root_folder)
-        if os.path.exists(execution_data_path):
-            self.state.execution_data = np.load(execution_data_path, allow_pickle=True)
-            self.state.execution_data = self.state.execution_data.item()
-        if os.path.exists(self.paths.path_to_performances):
-            self.state.average_performances = np.load(self.paths.path_to_performances, allow_pickle=True)
-            self.state.average_performances = self.state.average_performances.item()
-
-    def log_execution_data(self):
-        self.state.execution_data["memory"] = [torch.cuda.max_memory_allocated(0)]
-        np.save(self.execution_data_file_name.format(self.paths.root_folder), self.state.execution_data)
-
-    def run(self):
+    def train(self):
         self.state.initialize_performances()
-        self.load_logs()
+        self.state.logger.load_logs(path_to_performances=self.paths.performances,
+                                    execution_data_file_name=self.execution_data_file_name,
+                                    root_folder=self.paths.root_folder)
 
         for model_index in range(self.hyperparameters.k_fold):
             self.initialize_data_for_new_model()
             self.train_model_with_index(model_index)
 
-        self.log_execution_data()
+        self.state.logger.log_execution_data(root_folder=self.paths.root_folder)

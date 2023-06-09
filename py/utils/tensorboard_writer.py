@@ -37,12 +37,12 @@ class TensorboardWriter:
                 for index in range(len(epochs)):
                     if performance_label.find("model") == -1:
                         self.writer.add_scalar(f'{performance_label};{dataset_type};{metric}',
-                                          performances_for_metric[index + start_index], epochs[index])
+                                               performances_for_metric[index + start_index], epochs[index])
                     else:
                         self.writer.add_scalars("models", {
                             f'{performance_label};{dataset_type};{metric}': performances_for_metric[index]},
-                                           epochs[index])
-        return performances_size        
+                                                epochs[index])
+        return performances_size
 
     def plot_execution_time(self):
         time_data_path = "{}/execution_data.npy".format(self.path_to_root_folder)
@@ -61,14 +61,13 @@ class TensorboardWriter:
                                    allow_pickle=True)
             performances = performances.item()
             performances_size = self.write_performances_to_tensorboard(performance_label=performance_label,
-                                                   performances=performances)
+                                                                       performances=performances)
         return performances_size
 
     def plot_model_performances(self, performance_label, start_index=0):
         self.write_performances_to_tensorboard(performance_label=performance_label,
                                                performances=self.average_performances,
                                                start_index=start_index)
-                                            
 
     def plot_models_together(self):
         performances_size = self.plot_models()

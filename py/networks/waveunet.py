@@ -44,7 +44,6 @@ class WaveUnet(torch.nn.Module):
     ):
         super(WaveUnet, self).__init__()
 
-        #
         if residual_units is None:
             residual_units = [
                 8,
@@ -58,8 +57,8 @@ class WaveUnet(torch.nn.Module):
                 128,
                 129,
             ]
-        self.nr_dims = int(dim[:-1])
-        print(f"INFO: nr_dims = {self.nr_dims}")
+        self.nr_dimensions = int(dim[:-1])
+        print(f"INFO: nr_dims = {self.nr_dimensions}")
         if dim == "1d":
             conv = torch.nn.Conv1d
             batchnorm = torch.nn.BatchNorm1d
@@ -73,7 +72,7 @@ class WaveUnet(torch.nn.Module):
         chs = np.array(residual_units)
         chs = chs[chs >= nr_channels]
 
-        self.convIn = conv(in_channels=nr_channels, out_channels=chs[0], kernel_size=1)
+        self.convolutionIn = conv(in_channels=nr_channels, out_channels=chs[0], kernel_size=1)
 
         self.downLayers = torch.nn.ModuleList(
             [
@@ -92,7 +91,6 @@ class WaveUnet(torch.nn.Module):
         )
 
         self.ubottom = torch.nn.Identity()
-
         self.upLayers = torch.nn.ModuleList(
             [
                 torch.nn.Sequential(
@@ -124,12 +122,11 @@ class WaveUnet(torch.nn.Module):
         self.maxpool = maxpool(kernel_size=scale_factor, ceil_mode=True)
         self.upsample = torch.nn.Upsample(scale_factor=scale_factor)
 
-        print(f"INFO: Minimum meaningful size = {self.get_min_size(nr_channels)}")
+        print(f"INFO: Minimum meaningful size = {self.get_minimum_size(nr_channels)}")
 
     def forward(self, x_in):
-
         keep_x = x_in.clone()
-        x = self.convIn(x_in)
+        x = self.convolutionIn(x_in)
         trans_x = self.relu(x)
 
         x, saved_layers, sizes = self.forward_down(x)
@@ -144,7 +141,6 @@ class WaveUnet(torch.nn.Module):
         return x
 
     def forward_down(self, x):
-
         sizes = [x.shape[-1]]
         saved_layers = []
 
@@ -159,9 +155,7 @@ class WaveUnet(torch.nn.Module):
         return x, saved_layers, sizes
 
     def forward_up(self, x, saved_layers, sizes):
-
         for i, layer in enumerate(self.upLayers):
-
             idx_up = len(self.upLayers) - 1 - i
             idx_do = len(self.downLayers) - 1 - i
 
@@ -187,19 +181,17 @@ class WaveUnet(torch.nn.Module):
         return next(self.parameters()).device
 
     @torch.inference_mode()
-    def get_min_size(self, nr_channels):
-
+    def get_minimum_size(self, nr_channels):
         self.eval()
-
         length = 0
         bottom_length = 1
         while bottom_length == 1:
             length += 1
-            if self.nr_dims == 1:
+            if self.nr_dimensions == 1:
                 x = torch.rand((1, nr_channels, length), device=self.device)
-            elif self.nr_dims == 2:
+            elif self.nr_dimensions == 2:
                 x = torch.rand((1, nr_channels, length, length), device=self.device)
-            x = self.convIn(x)
+            x = self.convolutionIn(x)
             _, _, sizes = self.forward_down(x)
             bottom_length = sizes[-1]
 

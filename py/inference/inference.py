@@ -41,6 +41,6 @@ class Inference:
         predictions = np.hstack(predictions)
         score = np.hstack(score)
 
-        self.networks_data.target_model.run()
+        self.networks_data.target_model.train()
 
         return truth, predictions, score

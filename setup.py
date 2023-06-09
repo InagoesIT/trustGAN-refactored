@@ -60,7 +60,7 @@ setuptools.setup(
         "py.networks",
         "py.performances",
         "py.inference",
-        "py.training.data",
+        "py.training.components",
         "py.training",
         "py.utils"
     ],
@@ -69,7 +69,7 @@ setuptools.setup(
         "py.networks": "py/networks",
         "py.performances": "py/performances",
         "py.inference": "py/inference",
-        "py.training.data": "py/training/data",
+        "py.training.components": "py/training/components",
         "py.training": "py/training",
         "py.utils": "py/utils"
     },
