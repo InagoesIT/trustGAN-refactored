@@ -170,9 +170,7 @@ class TrainingPipeline:
 
         return loss_gan
 
-    def recover_from_nan(self, model_index):
-        nan_recovery = NetworkNaNRecovery(self.networks_data, self.paths.root_folder, self.state.device,
-                                          self.data_loaders.train[model_index], self.modifier)
+    def recover_from_nan(self, nan_recovery):
         nan_recovery.recover_from_nan_target_model()
         nan_recovery.recover_from_nan_gan()
 
@@ -213,9 +211,11 @@ class TrainingPipeline:
         self.networks_data.gan.train()
 
     def train_model_with_index(self, model_index):
+        nan_recovery = NetworkNaNRecovery(self.networks_data, self.paths.root_folder, self.state.device,                        self.data_loaders.train[model_index], self.modifier)
+        
         for self.state.epoch in range(self.hyperparameters.total_epochs):
             start_time = time.time()
-            self.recover_from_nan(model_index)
+            self.recover_from_nan(nan_recovery)
 
             self.performances_logger.run(model_index)
             self.saver.save_best_validation_loss(performances=self.state.average_performances)
