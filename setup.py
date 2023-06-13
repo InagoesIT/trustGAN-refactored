@@ -38,7 +38,7 @@ MAINTAINER_EMAIL = "helion.dumasdesbourboux'at'thalesgroup.com"
 URL = "https://github.com/ThalesGroup/trustGAN"
 LICENSE = "MIT License"
 
-with open("py/_version.py") as f:
+with open("_version.py") as f:
     VERSION = f.read().splitlines()[-1].split("=")[-1].replace('"', "").strip()
 
 with open("requirements.txt") as f:
@@ -56,22 +56,24 @@ setuptools.setup(
     version=VERSION,
     install_requires=REQUIRED,
     packages=[
-        "py.dataset",
-        "py.networks",
-        "py.performances",
-        "py.inference",
-        "py.training.components",
-        "py.training",
-        "py.utils"
+        "dataset",
+        "networks",
+        "performances",
+        "inference",
+        "training.components",
+        "training",
+        "utils",
+        "utils.entry_scripts"
     ],
     package_dir={
-        "py.dataset": "py/dataset",
-        "py.networks": "py/networks",
-        "py.performances": "py/performances",
-        "py.inference": "py/inference",
-        "py.training.components": "py/training/components",
-        "py.training": "py/training",
-        "py.utils": "py/utils"
+        "dataset": "dataset",
+        "networks": "networks",
+        "performances": "performances",
+        "inference": "inference",
+        "training.components": "training/components",
+        "training": "training",
+        "utils": "utils",
+        "utils.entry_scripts": "utils/entry_scripts"
     },
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",

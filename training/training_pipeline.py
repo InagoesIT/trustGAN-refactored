@@ -25,21 +25,20 @@
 #
 # 2022 october 21
 
-import os
 import glob
 import numpy as np
 import torch
 import time
 
-from py.dataset.modifier import Modifier
-from py.performances.performances_logger import PerformancesLogger
-from py.training.components.networks_data import NetworksData
-from py.training.components.state import State
-from py.training.components.data_loaders import DataLoaders
-from py.training.components.hyperparameters import Hyperparameters
-from py.training.network_nan_recovery import NetworkNaNRecovery
-from py.training.components.paths import Paths
-from py.utils.saver import Saver
+from dataset.modifier import Modifier
+from performances.performances_logger import PerformancesLogger
+from training.components.networks_data import NetworksData
+from training.components.state import State
+from training.components.data_loaders import DataLoaders
+from training.components.hyperparameters import Hyperparameters
+from training.network_nan_recovery import NetworkNaNRecovery
+from training.components.paths import Paths
+from utils.saver import Saver
 
 
 class TrainingPipeline:

@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 
-from py.utils.images_plotter import ImagesPlotter
+from utils.images_plotter import ImagesPlotter
 
 
 class Saver:

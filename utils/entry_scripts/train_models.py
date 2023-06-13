@@ -31,10 +31,10 @@
 import os
 import click
 
-from py.training.components.paths import Paths
-from py.training.components.state import State
-from py.training.components.hyperparameters import Hyperparameters
-from py.training.training_pipeline import TrainingPipeline
+from training.components.paths import Paths
+from training.components.state import State
+from training.components.hyperparameters import Hyperparameters
+from training.training_pipeline import TrainingPipeline
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 

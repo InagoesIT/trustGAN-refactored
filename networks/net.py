@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from py.networks.residual_network_unit import ResidualNetworkUnit
+from networks.residual_network_unit import ResidualNetworkUnit
 
 
 class Net(torch.nn.Module):

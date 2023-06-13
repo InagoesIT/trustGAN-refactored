@@ -3,8 +3,8 @@ import pkgutil
 import torch
 import copy
 
-from py.networks.gan import Gan
-from py.performances.losses import Losses
+from networks.gan import Gan
+from performances.losses import Losses
 
 package = __import__("py.networks")
 

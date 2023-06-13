@@ -3,8 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from py.performances.performances_logger import PerformancesLogger
-from py.training.components.paths import Paths
+from performances.performances_logger import PerformancesLogger
+from training.components.paths import Paths
 
 
 class GraphsPlotter:

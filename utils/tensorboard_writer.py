@@ -4,7 +4,7 @@ import numpy as np
 import re
 from torch.utils.tensorboard import SummaryWriter
 
-from py.performances.performances_logger import PerformancesLogger
+from performances.performances_logger import PerformancesLogger
 
 
 class TensorboardWriter:

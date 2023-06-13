@@ -1,6 +1,6 @@
-from py.dataset.data_loader import DataLoader
+from dataset.data_loader import DataLoader
 
-from py.dataset.dataset_handler import DatasetHandler
+from dataset.dataset_handler import DatasetHandler
 
 
 class DataLoaders:

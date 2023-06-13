@@ -30,8 +30,8 @@
 
 import os
 import click
-from py.utils.graphs_plotter import GraphsPlotter
-from py.utils.images_plotter import ImagesPlotter
+from utils.graphs_plotter import GraphsPlotter
+from utils.images_plotter import ImagesPlotter
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 

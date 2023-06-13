@@ -29,7 +29,7 @@
 
 import click
 
-from py.dataset.dataset_saver import DatasetSaver
+from dataset.dataset_saver import DatasetSaver
 
 
 @click.command(
@@ -45,7 +45,7 @@ from py.dataset.dataset_saver import DatasetSaver
     required=True,
     help="Path where to save results.",
 )
-def trustgan_download_data(
+def download_data(
     dataset,
     path_to_root_folder,
 ):
@@ -54,4 +54,4 @@ def trustgan_download_data(
 
 
 if __name__ == "__main__":
-    trustgan_download_data()
+    download_data()

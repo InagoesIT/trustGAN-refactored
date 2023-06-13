@@ -1,6 +1,6 @@
 import click
 
-from py.utils.tensorboard_writer import TensorboardWriter
+from utils.tensorboard_writer import TensorboardWriter
 
 
 @click.command(

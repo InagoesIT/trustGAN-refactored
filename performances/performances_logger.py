@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-from py.performances.losses import Losses
-from py.utils.images_plotter import ImagesPlotter
+from performances.losses import Losses
+from utils.images_plotter import ImagesPlotter
 
 
 class PerformancesLogger:

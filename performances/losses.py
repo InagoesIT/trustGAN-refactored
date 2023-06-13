@@ -29,7 +29,7 @@
 import torch
 import numpy as np
 
-from py.dataset.modifier import Modifier
+from dataset.modifier import Modifier
 
 
 class Losses:

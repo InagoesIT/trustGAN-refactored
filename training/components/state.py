@@ -4,8 +4,6 @@ import time
 import numpy as np
 import torch
 
-from py.utils.logger import Logger
-
 
 class State:
     def __init__(self, nr_classes, given_target_model=None, verbose=True, device_name=None, seed=42):
@@ -22,7 +20,6 @@ class State:
         self.device = None
         self.set_device(device_name=device_name)
         self.initialize_performances()
-        self.logger = Logger(self)
         self.nr_dimensions = 0
 
     def set_device(self, device_name=None):
