@@ -58,7 +58,8 @@ class TrainingPipeline:
         TrainingPipeline.set_seeds(state.seed)
         self.data_loaders = DataLoaders(path_to_dataset=paths.dataset,
                                         nr_classes=self.state.nr_classes,
-                                        training_hyperparameters=hyperparameters)
+                                        k_fold=hyperparameters.k_fold,
+                                        batch_size=hyperparameters.batch_size)
         self.performances_logger = None
 
         self.modifier = Modifier(nr_channels=self.hyperparameters.nr_channels)

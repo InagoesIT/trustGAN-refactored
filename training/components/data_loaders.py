@@ -4,9 +4,10 @@ from dataset.dataset_handler import DatasetHandler
 
 
 class DataLoaders:
-    def __init__(self, path_to_dataset, nr_classes, training_hyperparameters):
+    def __init__(self, path_to_dataset, nr_classes, batch_size, k_fold):
         self.path_to_dataset = path_to_dataset
-        self.training_hyperparameters = training_hyperparameters
+        self.batch_size = batch_size
+        self.k_fold = k_fold
         self.nr_classes = nr_classes
         self.validation = []
         self.train = []
@@ -25,24 +26,24 @@ class DataLoaders:
 
         dataset_handler = DatasetHandler(input_items, labels)
         total_size = len(dataset_handler)
-        fold_size = int(total_size / self.training_hyperparameters.k_fold)
+        fold_size = int(total_size / self.k_fold)
         
-        if self.training_hyperparameters.k_fold < 2:
+        if self.k_fold < 2:
             print("INFO: The test and validation set will be split 80/20, there won't be any cross-validation.")
             fold_size = int(total_size * 0.2)
 
-        for fold_index in range(self.training_hyperparameters.k_fold):
+        for fold_index in range(self.k_fold):
             train_set, validation_set = DataLoaders.get_train_and_validation_dataset(
                 dataset_handler, fold_index, fold_size, total_size)
 
             self.train.append(
                 DataLoader.get_dataloader(
                     dataset=train_set,
-                    batch_size=self.training_hyperparameters.batch_size))
+                    batch_size=self.batch_size))
             self.validation.append(
                 DataLoader.get_dataloader(
                     dataset=validation_set,
-                    batch_size=self.training_hyperparameters.batch_size))
+                    batch_size=self.batch_size))
 
     @staticmethod
     def get_train_and_validation_dataset(dataset_handler, fold_index, fold_size, total_size):
@@ -73,4 +74,4 @@ class DataLoaders:
 
         self.test = DataLoader.get_dataloader(
             dataset=dataset,
-            batch_size=self.training_hyperparameters.batch_size)
+            batch_size=self.batch_size)
