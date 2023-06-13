@@ -6,7 +6,7 @@ import copy
 from networks.gan import Gan
 from performances.losses import Losses
 
-package = __import__("py.networks")
+package = __import__("networks")
 
 
 class NetworksData:

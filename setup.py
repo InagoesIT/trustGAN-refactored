@@ -63,7 +63,8 @@ setuptools.setup(
         "training.components",
         "training",
         "utils",
-        "utils.entry_scripts"
+        "utils.entry_scripts",
+        "utils.data_visualizers"
     ],
     package_dir={
         "dataset": "dataset",
@@ -73,7 +74,8 @@ setuptools.setup(
         "training.components": "training/components",
         "training": "training",
         "utils": "utils",
-        "utils.entry_scripts": "utils/entry_scripts"
+        "utils.entry_scripts": "utils/entry_scripts",
+        "utils.data_visualizers": "utils/data_visualizers"
     },
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
