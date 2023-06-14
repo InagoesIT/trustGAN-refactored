@@ -1,3 +1,4 @@
+import os.path
 import pkgutil
 
 import torch
@@ -10,11 +11,10 @@ package = __import__("networks")
 
 
 class NetworksData:
-    def __init__(self, nr_dimensions, nr_classes, training_hyperparameters, device, given_target_model=None):
+    def __init__(self, training_hyperparameters, state, create_target_model_only=False,
+                 given_target_model=None):
         self.training_hyperparameters = training_hyperparameters
-        self.nr_dimensions = nr_dimensions
-        self.device = device
-        self.nr_classes = nr_classes
+        self.state = state
 
         self.target_model = None
         self.set_target_model(given_target_model)
@@ -23,6 +23,9 @@ class NetworksData:
         self.target_model_on_gan_loss_function = Losses.get_loss_function_for(
             self.training_hyperparameters.target_model_on_gan_loss)
         self.target_model_optimizer = torch.optim.AdamW(self.target_model.parameters(), weight_decay=0.05)
+
+        if create_target_model_only:
+            return
 
         self.gan = None
         self.set_gan()
@@ -42,37 +45,36 @@ class NetworksData:
             return
         for importer, modname, is_pkg in pkgutil.walk_packages(package.__path__):
             module = importer.find_module(modname).load_module(modname)
-
             if not hasattr(module, self.training_hyperparameters.target_model_network_type):
                 continue
             network = getattr(module, self.training_hyperparameters.target_model_network_type)
             if self.training_hyperparameters.target_model_network_type == 'Net':
                 self.target_model = network(
-                    nr_classes=self.nr_classes,
-                    device=self.device,
-                    nr_channels=self.training_hyperparameters.nr_channels,
+                    nr_classes=self.state.nr_classes,
+                    device=self.state.device,
+                    nr_channels=self.state.nr_channels,
                     is_batch_norm=False,
                     is_weight_norm=True,
-                    dim=f"{self.nr_dimensions}d",
+                    dim=f"{self.state.nr_dimensions}d",
                     residual_units_number=self.training_hyperparameters.target_model_residual_units_number
                 )
             else:
                 self.target_model = network(
-                    nr_classes=self.nr_classes,
-                    nr_channels=self.training_hyperparameters.nr_channels,
+                    nr_classes=self.state.nr_classes,
+                    nr_channels=self.state.nr_channels,
                     is_batch_norm=False,
                     is_weight_norm=True,
-                    dim=f"{self.nr_dimensions}d",
+                    dim=f"{self.state.nr_dimensions}d",
                 )
             break
 
     def set_gan(self):
         self.gan = Gan(
-            nr_channels=self.training_hyperparameters.nr_channels,
+            nr_channels=self.state.nr_channels,
             is_batch_norm=True,
-            device=self.device,
+            device=self.state.device,
             is_weight_norm=False,
-            dim=f"{self.nr_dimensions}d",
+            dim=f"{self.state.nr_dimensions}d",
             residual_units_number=self.training_hyperparameters.gan_residual_units_number
         )
 
@@ -86,12 +88,14 @@ class NetworksData:
         )
 
     def load_models_if_present(self, path_to_load_target_model, path_to_load_gan):
-        for model, path_to_load in [
-            (self.target_model, path_to_load_target_model),
-            (self.gan, path_to_load_gan),
-        ]:
-            model = model.to(self.device)
+        loading_data = [(self.target_model, path_to_load_target_model)]
+        if getattr(self, "gan", None) is not None:
+            loading_data.append((self.gan, path_to_load_gan))
+        for model, path_to_load in loading_data:
+            if path_to_load is None or not os.path.exists(path_to_load):
+                continue
+            model = model.to(self.state.device)
 
             if path_to_load is not None:
-                ld = torch.load(path_to_load, map_location=self.device)
+                ld = torch.load(path_to_load, map_location=self.state.device)
                 model.load_state_dict(ld)

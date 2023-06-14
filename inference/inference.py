@@ -3,44 +3,47 @@ import torch
 
 
 class Inference:
-    def __init__(self, networks_data, modifier, device):
-        self.networks_data = networks_data
+    def __init__(self, target_model, modifier, device, nr_classes):
+        self.target_model = target_model
         self.modifier = modifier
         self.device = device
+        self.nr_classes = nr_classes
 
     @torch.inference_mode()
-    def run(self, loader, score_type="MCP"):
-        if type(loader) == str:
-            loader = getattr(self, loader)
-
-        self.networks_data.target_model.eval()
+    def get_inference_results(self, loader, score_type="MCP"):
+        self.target_model.eval()
 
         softmax = torch.nn.Softmax(dim=1)
-        truth = []
+        truths = []
         predictions = []
-        score = []
+        scores = []
 
         for data in loader:
             inputs, labels = data[0].to(self.device), data[1].to(self.device)
             inputs, labels = self.modifier((inputs, labels))
 
-            outputs = softmax(self.networks_data.target_model(inputs))
+            outputs = softmax(self.target_model(inputs))
             _, tmp_predictions = torch.max(outputs, 1)
             outputs, _ = torch.sort(outputs, dim=1)
             if score_type == "MCP":
                 tmp_score = outputs[:, -1]
             elif score_type == "Diff2MCP":
                 tmp_score = outputs[:, -1] - outputs[:, -2]
+            else:
+                return None
+
+            normalizing_factor = 1 / self.nr_classes
+            tmp_score = (tmp_score - normalizing_factor) / (1 - normalizing_factor)
             _, tmp_truth = torch.max(labels, 1)
 
-            truth += [tmp_truth.detach().cpu().numpy()]
-            predictions += [tmp_predictions.detach().cpu().numpy()]
-            score += [tmp_score.detach().cpu().numpy()]
+            truths.append(tmp_truth.detach().cpu())
+            predictions.append(tmp_predictions.detach().cpu())
+            scores.append(tmp_score.detach().cpu())
 
-        truth = np.hstack(truth)
-        predictions = np.hstack(predictions)
-        score = np.hstack(score)
+        truths = torch.cat(truths)
+        predictions = torch.cat(predictions)
+        score = torch.cat(scores)
 
-        self.networks_data.target_model.train()
+        self.target_model.train()
 
-        return truth, predictions, score
+        return truths, predictions, score

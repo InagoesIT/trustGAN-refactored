@@ -2,8 +2,9 @@ import torch
 
 
 class Modifier:
-    def __init__(self, nr_channels):
-        self.nr_channels = nr_channels
+    def __init__(self, data_loader):
+        self.nr_channels = None
+        self.nr_channels = self(next(iter(data_loader)))[0].shape[1]
 
     @staticmethod
     def convert_from_one_hot_to_minus_one_plus_one_encoding(labels):

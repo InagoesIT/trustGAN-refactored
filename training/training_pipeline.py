@@ -38,6 +38,7 @@ from training.components.data_loaders import DataLoaders
 from training.components.hyperparameters import Hyperparameters
 from training.network_nan_recovery import NetworkNaNRecovery
 from training.components.paths import Paths
+from utils.logger import Logger
 from utils.saver import Saver
 
 
@@ -61,12 +62,14 @@ class TrainingPipeline:
                                         k_fold=hyperparameters.k_fold,
                                         batch_size=hyperparameters.batch_size)
         self.performances_logger = None
+        self.logger = Logger(self.state)
 
-        self.modifier = Modifier(nr_channels=self.hyperparameters.nr_channels)
-        self.state.nr_dimensions = self.modifier(next(iter(self.data_loaders.validation[0])))[0].ndim - 2
-        self.hyperparameters.nr_channels = self.modifier(next(iter(self.data_loaders.validation[0])))[0].shape[1]
+        self.modifier = Modifier(data_loader=self.data_loaders.validation[0])
+        self.state.nr_channels = self.modifier.nr_channels
+        modified_data = self.modifier(next(iter(self.data_loaders.validation[0])))
+        self.state.nr_dimensions = modified_data[0].ndim - 2
         print(f"INFO: Found {self.state.nr_dimensions} dimensions")
-        print(f"INFO: Found {self.hyperparameters.nr_channels} channels")
+        print(f"INFO: Found {self.state.nr_channels} channels")
 
     @staticmethod
     def set_seeds(seed):
@@ -177,7 +180,7 @@ class TrainingPipeline:
     def is_gan_training_epoch(self):
         proportion_target_model_alone = torch.rand(1)
         return self.state.epoch >= self.hyperparameters.nr_steps_target_model_alone \
-               and proportion_target_model_alone > self.hyperparameters.proportion_target_model_alone
+            and proportion_target_model_alone > self.hyperparameters.proportion_target_model_alone
 
     def train_models(self, model_index):
         for i, data in enumerate(self.data_loaders.train[model_index]):
@@ -211,8 +214,9 @@ class TrainingPipeline:
         self.networks_data.gan.train()
 
     def train_model_with_index(self, model_index):
-        nan_recovery = NetworkNaNRecovery(self.networks_data, self.paths.root_folder, self.state.device,                        self.data_loaders.train[model_index], self.modifier)
-        
+        nan_recovery = NetworkNaNRecovery(self.networks_data, self.paths.root_folder, self.state.device,
+                                          self.data_loaders.train[model_index], self.modifier)
+
         for self.state.epoch in range(self.hyperparameters.total_epochs):
             start_time = time.time()
             self.recover_from_nan(nan_recovery)
@@ -224,7 +228,7 @@ class TrainingPipeline:
             self.set_training_mode()
             self.train_models(model_index)
 
-            self.state.logger.log_execution_time(start_time, model_index)
+            self.logger.log_execution_time(start_time, model_index)
 
         self.saver.save_model_data(model_index=model_index)
 
@@ -234,11 +238,9 @@ class TrainingPipeline:
 
     def initialize_data_for_new_model(self):
         self.state.epoch = 0
-        self.networks_data = NetworksData(nr_dimensions=self.state.nr_dimensions,
+        self.networks_data = NetworksData(state=self.state,
                                           training_hyperparameters=self.hyperparameters,
-                                          device=self.state.device,
-                                          given_target_model=self.state.given_target_model,
-                                          nr_classes=self.state.nr_classes)
+                                          given_target_model=self.state.given_target_model)
         self.saver = Saver(device=self.state.device, modifier=self.modifier, networks_data=self.networks_data,
                            root_folder=self.paths.root_folder)
         self.performances_logger = PerformancesLogger(self)
@@ -250,13 +252,13 @@ class TrainingPipeline:
 
     def train(self):
         self.state.initialize_performances()
-        self.state.logger.load_logs(path_to_performances=self.paths.performances,
-                                    execution_data_file_name=self.execution_data_file_name,
-                                    root_folder=self.paths.root_folder)
+        self.logger.load_logs(path_to_performances=self.paths.performances,
+                              execution_data_file_name=self.execution_data_file_name,
+                              root_folder=self.paths.root_folder)
 
         for model_index in range(self.hyperparameters.k_fold):
             self.initialize_data_for_new_model()
             self.train_model_with_index(model_index)
 
-        self.state.logger.log_execution_data(root_folder=self.paths.root_folder,
-                                             execution_data_file_name=self.execution_data_file_name)
+        self.logger.log_execution_data(root_folder=self.paths.root_folder,
+                                       execution_data_file_name=self.execution_data_file_name)

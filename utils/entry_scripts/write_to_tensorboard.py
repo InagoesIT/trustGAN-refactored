@@ -31,6 +31,12 @@ from utils.tensorboard_writer import TensorboardWriter
     help="The path for loading the performances",
 )
 @click.option(
+    "--path_to_execution_data",
+    default=None,
+    type=str,
+    help="The path for loading the execution data",
+)
+@click.option(
     "--plot_together",
     type=bool,
     is_flag=True,
@@ -43,24 +49,35 @@ from utils.tensorboard_writer import TensorboardWriter
     help="""Plot only the average performances of this folder, 
     preparing to merge it with another performances.""",
 )
+@click.option(
+    "--plot_execution_data",
+    type=bool,
+    is_flag=True,
+    help="Plot only the execution data of the model.",
+)
 def main(
         path_to_root_folder,
         total_epochs,
         validation_interval,
         path_to_performances,
+        path_to_execution_data,
         plot_together,
-        plot_only_average_performances
+        plot_only_average_performances,
+        plot_execution_data
 ):
     tensorboard_writer = TensorboardWriter(path_to_root_folder,
                                            total_epochs,
                                            validation_interval,
-                                           path_to_performances)
-
+                                           path_to_performances, 
+                                           path_to_execution_data)
     if plot_only_average_performances:
-        label = path_to_performances.split("_")[-1] + "_model"
-        tensorboard_writer.plot_model_performances(performance_label=label)
+        label = path_to_performances.split("_")[-1].split(".")[0] + "_model"
+        tensorboard_writer.plot_model_performances(model_label=label)
     elif plot_together:
         tensorboard_writer.plot_models_together()
+    elif plot_execution_data:        
+        label = path_to_execution_data.split("_")[-1].split(".")[0] + "_model"
+        tensorboard_writer.plot_execution_time(model_label=label)
     else:
         tensorboard_writer.plot_models_separately()
 

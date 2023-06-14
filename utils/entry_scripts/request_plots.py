@@ -57,19 +57,29 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     type=str,
     help="The path for loading the performances",
 )
+@click.option(
+    "--plot_gpu_memory_only",
+    type=bool,
+    is_flag=True,
+    help="Plot gpu memory usage only.",
+)
 def main(
         path_to_root_folder,
         total_epochs,
         validation_interval,
         path_to_performances,
+        plot_gpu_memory_only
 ):
-    produce_plots(path_to_root_folder, total_epochs, validation_interval, path_to_performances)
+    produce_plots(path_to_root_folder, total_epochs, validation_interval, path_to_performances, plot_gpu_memory_only)
 
 
-def produce_plots(root_folder, total_epochs, validation_interval, path_to_performances):
+def produce_plots(root_folder, total_epochs, validation_interval, path_to_performances, plot_gpu_memory_only):
     graphs_plotter = GraphsPlotter(root_folder=root_folder, total_epochs=total_epochs,
                                    validation_interval=validation_interval,
                                    path_to_performances=path_to_performances)
+    graphs_plotter.plot_gpu_usage()
+    if plot_gpu_memory_only:
+        return
     graphs_plotter.plot_performances()
     graphs_plotter.plot_execution_time()
     ImagesPlotter.create_gif(root_folder=root_folder, pattern="example_image_is_best_step_*.png")

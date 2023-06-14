@@ -155,7 +155,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
     '--target_model_residual_units_number',
     type=int,
     default=7,
-    help="The number of residual units for the targets model",
+    help="The number of residual units for the target model",
 )
 @click.option(
     '--gan_residual_units_number',

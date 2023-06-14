@@ -48,6 +48,7 @@ class Gan(torch.nn.Module):
         )        
         self.conv1 = conv(in_channels=chs[-1], out_channels=chs[0], kernel_size=1)
         self.conv1 = self.conv1.to(torch.device("cuda:0"))
+        self.to(device)
 
     def forward(self, x):
         x = x.to(torch.device("cuda:0"))

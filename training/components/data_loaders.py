@@ -27,6 +27,8 @@ class DataLoaders:
         dataset_handler = DatasetHandler(input_items, labels)
         total_size = len(dataset_handler)
         fold_size = int(total_size / self.k_fold)
+        if self.batch_size is None:
+            self.batch_size = total_size
         
         if self.k_fold < 2:
             print("INFO: The test and validation set will be split 80/20, there won't be any cross-validation.")

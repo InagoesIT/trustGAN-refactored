@@ -12,6 +12,8 @@ class GraphsPlotter:
         self.root_folder = root_folder
         self.total_epochs = total_epochs
         self.validation_interval = validation_interval
+        if path_to_performances is None:
+            return
         self.average_performances = np.load("{}/{}".format(self.root_folder, path_to_performances), allow_pickle=True)
         self.average_performances = self.average_performances.item()
         self.train_metrics = list(self.average_performances[list(self.average_performances.keys())[0]].keys()) 
@@ -63,3 +65,30 @@ class GraphsPlotter:
         plt.grid()
         plt.savefig("{}/plots/time_plot.png".format(self.root_folder))
         plt.clf()
+
+    def plot_gpu_usage(self):
+        if not os.path.exists(self.root_folder):
+            os.mkdir(self.root_folder)
+        data = dict()
+        for root, dirs, files in os.walk(self.root_folder):
+            for filename in files:
+                if "execution" not in filename:
+                    continue
+                full_path = os.path.join(root, filename)
+                execution_data = np.load(full_path, allow_pickle=True)
+                gpu_usage = execution_data.item()["memory"][0] / 1024 / 1024 / 1024
+                label = filename.split("_")[-1].split(".")[0]
+                data[label] = gpu_usage
+
+        names = list(data.keys())
+        values = list(data.values())
+        plt.figure(figsize=(10, 6)) 
+        plt.bar(range(len(data)), values, tick_label=names)
+        plt.xlabel("Model label")
+        plt.ylabel("Maximum GPU memmory usage in GB")
+        plt.grid()
+        plt.savefig("{}/gpu_usage_plot.png".format(self.root_folder))
+        plt.clf()
+
+
+
