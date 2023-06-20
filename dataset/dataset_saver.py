@@ -27,7 +27,6 @@
 # 2022 october 21
 
 import os
-import sys
 
 import numpy
 import numpy as np
@@ -38,50 +37,17 @@ import torchvision.transforms
 
 
 class DatasetSaver:
-    def __init__(self, dataset, path_to_root_folder, splits=None, seed=42, split_data=False):
-        # how will the dataset be split -> training, validation, testing
-        self.splits = splits
+    def __init__(self, dataset, path_to_root_folder, seed=42):
         self.dataset = dataset
         self.path_to_root_folder = path_to_root_folder
         DatasetSaver.set_seeds(seed)
-
-        if split_data:
-            self.set_splits()
-            data = self.get_data()
-        else:
-            data = self.get_data_no_split()
+        data = self.get_data()
         self.save_data(data)
-
-    def set_splits(self):
-        if self.splits is None:
-            self.splits = [0.7, 0.15, None]
-        if len(self.splits) != 3:
-            print("ERROR: len(splits) != 3")
-            sys.exit()
-        if self.splits[-1] is None:
-            self.splits[-1] = 1.0 - np.sum(self.splits[:-1])
-
-        self.splits = np.array(self.splits)
 
     @staticmethod
     def set_seeds(seed):
         np.random.seed(seed)
         torch.manual_seed(seed)
-
-    def get_data_no_split(self):
-        if hasattr(torchvision.datasets, self.dataset):
-            data = self.get_torch_dataset_no_split()
-        else:
-            print(f"ERROR: did not find the dataset {self.dataset}")
-            raise AttributeError
-
-        for k, v in data.items():
-            nr_unique_elements = torch.unique(v["y"]).size()
-            print(
-                f"INFO: {k} has x shape = {v['x'].shape} and y shape = {v['y'].shape}, nr uniques = {nr_unique_elements}"
-            )
-
-        return data
 
     def get_data(self):
         if hasattr(torchvision.datasets, self.dataset):
@@ -98,55 +64,20 @@ class DatasetSaver:
 
         return data
 
-    def get_torch_dataset_no_split(self):
-        """ Returns data with trainvalid and test keys"""
-
-        data = self.get_train_and_validation_no_split()
-
-        # Test
-        test_set = self.get_torch_dataset_with_type(is_train=False)
-        data["test"] = test_set
-
-        # Calculate the dataset train-test split
-        self.splits = np.array(
-            [data[el]["y"].shape[0] for el in ["trainvalidation", "test"]], dtype=float
-        )
-        self.splits /= self.splits.sum()
-        print("INFO: splits:", self.splits)
-
-        return data
-
     def get_torch_dataset(self):
-        """ Returns data with train, valid and test keys"""
+        """ Returns data with trainvalid and test keys"""
         data = self.get_train_and_validation()
 
         # Test
         test_set = self.get_torch_dataset_with_type(is_train=False)
         data["test"] = test_set
 
-        # New splits
-        print("INFO: previous splits:", self.splits)
-        self.splits = np.array(
-            [data[el]["y"].shape[0] for el in ["train", "validation", "test"]], dtype=float
+        # Calculate the dataset train-test split
+        splits = np.array(
+            [data[el]["y"].shape[0] for el in ["trainvalidation", "test"]], dtype=float
         )
-        self.splits /= self.splits.sum()
-        print("INFO: new splits:", self.splits)
-
-        return data
-
-    def get_train_and_validation_no_split(self):
-        data = {}
-        train_valid_set = self.get_torch_dataset_with_type(is_train=True)
-
-        # shuffle elements
-        nr_samples = train_valid_set["y"].shape[0]
-        random_indexes = np.arange(nr_samples)
-        np.random.shuffle(random_indexes)
-
-        data["trainvalidation"] = {
-            "x": train_valid_set["x"][random_indexes],
-            "y": train_valid_set["y"][random_indexes],
-        }
+        splits /= splits.sum()
+        print("INFO: splits:", splits)
 
         return data
 
@@ -158,18 +89,10 @@ class DatasetSaver:
         nr_samples = train_valid_set["y"].shape[0]
         random_indexes = np.arange(nr_samples)
         np.random.shuffle(random_indexes)
-        train_valid_set["x"] = train_valid_set["x"][random_indexes]
-        train_valid_set["y"] = train_valid_set["y"][random_indexes]
 
-        splits = self.splits[:2] / self.splits[:2].sum()
-        nr_split_train = int(splits[0] * nr_samples)
-        data["train"] = {
-            "x": train_valid_set["x"][:nr_split_train],
-            "y": train_valid_set["y"][:nr_split_train],
-        }
-        data["validation"] = {
-            "x": train_valid_set["x"][nr_split_train:],
-            "y": train_valid_set["y"][nr_split_train:],
+        data["trainvalidation"] = {
+            "x": train_valid_set["x"][random_indexes],
+            "y": train_valid_set["y"][random_indexes],
         }
 
         return data
@@ -272,7 +195,7 @@ class DatasetSaver:
 
         return y
 
-    def channel_manipulations(self, x: numpy.ndarray, y: numpy.ndarray):
+    def channel_manipulations(self, x, y):
         # add a dimension m (n, m, n)
         if self.dataset in ["MNIST", "FashionMNIST"]:
             x = torch.unsqueeze(x, 1)
@@ -291,9 +214,3 @@ class DatasetSaver:
                     self.path_to_root_folder, self.dataset, f"{n_data}_{k}.pt"
                 )
                 torch.save(a_data, tmp_path2save)
-
-
-if __name__ == "__main__":
-    dataset_main = "OxfordIIITPet"
-    path2save_main = "./tmp_data/blalbla"
-    DatasetSaver(dataset=dataset_main, path_to_root_folder=path2save_main)

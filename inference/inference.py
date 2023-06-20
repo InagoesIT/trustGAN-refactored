@@ -3,8 +3,8 @@ import torch
 
 
 class Inference:
-    def __init__(self, networks_data, modifier, device):
-        self.networks_data = networks_data
+    def __init__(self, target_model, modifier, device):
+        self.target_model = target_model
         self.modifier = modifier
         self.device = device
 
@@ -13,7 +13,7 @@ class Inference:
         if type(loader) == str:
             loader = getattr(self, loader)
 
-        self.networks_data.target_model.eval()
+        self.target_model.eval()
 
         softmax = torch.nn.Softmax(dim=1)
         truth = []
@@ -24,7 +24,7 @@ class Inference:
             inputs, labels = data[0].to(self.device), data[1].to(self.device)
             inputs, labels = self.modifier((inputs, labels))
 
-            outputs = softmax(self.networks_data.target_model(inputs))
+            outputs = softmax(self.target_model(inputs))
             _, tmp_predictions = torch.max(outputs, 1)
             outputs, _ = torch.sort(outputs, dim=1)
             if score_type == "MCP":
@@ -41,6 +41,6 @@ class Inference:
         predictions = np.hstack(predictions)
         score = np.hstack(score)
 
-        self.networks_data.target_model.train()
+        self.target_model.train()
 
         return truth, predictions, score
