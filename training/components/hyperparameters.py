@@ -8,7 +8,6 @@ class Hyperparameters:
             nr_step_target_model_alone=1,
             proportion_target_model_alone=0.0,
             target_model_network_type="Net",
-            nr_channels=None,
             k_fold=5,
             validation_interval=25,
             target_model_loss='cross-entropy',
@@ -23,7 +22,6 @@ class Hyperparameters:
         self.nr_steps_target_model_alone = nr_step_target_model_alone
         self.proportion_target_model_alone = proportion_target_model_alone
         self.target_model_network_type = target_model_network_type
-        self.nr_channels = nr_channels
         self.k_fold = k_fold
         self.validation_interval = validation_interval
         self.target_model_loss = target_model_loss

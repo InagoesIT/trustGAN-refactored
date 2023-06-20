@@ -1,15 +1,13 @@
-import os
-import time
-
-import numpy as np
 import torch
 
 
 class State:
-    def __init__(self, nr_classes, given_target_model=None, verbose=True, device_name=None, seed=42):
+    def __init__(self, nr_classes, nr_dimensions=None, nr_channels=None, given_target_model=None, verbose=True, device_name=None, seed=42):
         self.nr_classes = nr_classes
         self.given_target_model = given_target_model
         self.verbose = verbose
+        self.nr_channels = nr_channels
+        self.nr_dimensions = nr_dimensions
         self.epoch = 0
         self.average_performances = None
         self.model_performances = None
@@ -20,7 +18,6 @@ class State:
         self.device = None
         self.set_device(device_name=device_name)
         self.initialize_performances()
-        self.nr_dimensions = 0
 
     def set_device(self, device_name=None):
         if device_name is None:

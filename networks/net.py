@@ -59,6 +59,7 @@ class Net(torch.nn.Module):
 
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(0.1)
+        self.to(device)
 
     def forward(self, x):
         for unit in self.layers:
